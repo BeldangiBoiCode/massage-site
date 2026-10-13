@@ -208,3 +208,18 @@ td a { text-decoration: none; }
 .row-actions { display: flex; gap: 8px; flex-wrap: wrap; min-width: 240px; }
 .row-actions input { padding: 8px 10px; }
 td select { padding: 6px 10px; width: auto; }
+
+/* Add-ons */
+.services { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 860px) { .services { grid-template-columns: 1fr; } }
+.addons { margin-top: 28px; background: var(--linen); border-radius: var(--radius); padding: 30px 34px; }
+.addons h3 { margin-bottom: 14px; }
+.addons ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px 40px; }
+.addons li { display: flex; justify-content: space-between; align-items: start; gap: 20px; }
+.addons p { color: var(--stone); font-size: .96rem; }
+.addons span { font-family: "Instrument Serif", serif; font-size: 1.9rem; line-height: 1; white-space: nowrap; }
+@media (max-width: 760px) { .addons ul { grid-template-columns: 1fr; } }
+.addon-picks { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px 24px; }
+.addon-picks legend { font-weight: 500; font-size: .95rem; padding: 0; margin-bottom: 8px; }
+label.check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
+label.check input { width: auto; accent-color: var(--pine); }

@@ -26,6 +26,8 @@ form.addEventListener('submit', async (e) => {
   }
   button.disabled = true;
   const user = await currentUser();
+  const addons = [...form.querySelectorAll('input[name=addon]:checked')].map((c) => c.value);
+  const notes = [addons.length ? `Add-ons: ${addons.join(', ')}` : '', form.notes.value.trim()].filter(Boolean).join('\n');
   const { error } = await sb.from('booking_requests').insert({
     user_id: user?.id ?? null,
     name: form.name.value.trim(),
@@ -34,7 +36,7 @@ form.addEventListener('submit', async (e) => {
     service: form.service.value,
     duration_min: Number(form.duration.value),
     preferred_date: form.date.value,
-    notes: form.notes.value.trim() || null,
+    notes: notes || null,
   });
   button.disabled = false;
   if (error) {
