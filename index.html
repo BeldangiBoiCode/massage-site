@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stillwater Massage</title>
+<meta name="description" content="Therapeutic massage in a quiet studio. Book deep tissue, Swedish, prenatal and sports massage online.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pine: #1E3B35;      /* deep text + dark bands */
+    --eucalyptus: #5B8A78;/* primary accent */
+    --mist: #EDF2EE;      /* page background */
+    --sea-glass: #CFE0D6; /* soft surfaces */
+    --linen: #F8FAF8;     /* cards */
+    --stone: #6B7671;     /* muted text */
+    --radius: 18px;
+    --max: 1120px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--mist);
+    color: var(--pine);
+    font: 400 17px/1.65 "Figtree", system-ui, sans-serif;
+  }
+  img, svg { display: block; max-width: 100%; }
+  a { color: inherit; }
+  h1, h2, h3 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; line-height: 1.1; margin: 0; }
+  h1 { font-size: clamp(2.8rem, 7vw, 5.2rem); }
+  h2 { font-size: clamp(2rem, 4.5vw, 3.2rem); }
+  h3 { font-size: 1.6rem; }
+  p { margin: 0; max-width: 62ch; }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 20px; }
+  section { padding: 96px 0; }
+  :focus-visible { outline: 3px solid var(--eucalyptus); outline-offset: 3px; border-radius: 6px; }
+
+  .btn {
+    display: inline-block; text-decoration: none; cursor: pointer;
+    background: var(--pine); color: var(--linen);
+    padding: 14px 26px; border-radius: 999px; border: 0;
+    font: 600 1rem "Figtree", sans-serif;
+    transition: background .2s ease, transform .2s ease;
+  }
+  .btn:hover { background: var(--eucalyptus); transform: translateY(-1px); }
+  .btn.ghost { background: transparent; color: var(--pine); box-shadow: inset 0 0 0 1.5px var(--pine); }
+  .btn.ghost:hover { background: var(--pine); color: var(--linen); }
+
+  /* Header */
+  header { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--mist) 88%, transparent); backdrop-filter: blur(10px); }
+  .nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 72px; }
+  .logo { font-family: "Instrument Serif", serif; font-size: 1.7rem; text-decoration: none; }
+  .nav ul { display: flex; gap: 28px; list-style: none; margin: 0; padding: 0; }
+  .nav ul a { text-decoration: none; color: var(--stone); font-weight: 500; }
+  .nav ul a:hover { color: var(--pine); }
+  @media (max-width: 760px) { .nav ul { display: none; } }
+
+  /* Hero */
+  .hero { padding: 56px 0 96px; }
+  .hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
+  .hero h1 em { font-style: italic; color: var(--eucalyptus); }
+  .hero p { font-size: 1.2rem; color: var(--stone); margin: 24px 0 36px; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 14px; }
+  .trust { margin-top: 40px; display: flex; flex-wrap: wrap; gap: 28px; color: var(--stone); font-size: .95rem; }
+  .trust strong { color: var(--pine); font-size: 1.05rem; }
+  .art { aspect-ratio: 4/5; border-radius: 220px 220px var(--radius) var(--radius); background: linear-gradient(170deg, var(--sea-glass), var(--eucalyptus)); overflow: hidden; position: relative; }
+  .art svg { position: absolute; inset: auto 0 0 0; width: 100%; }
+  .ripple { transform-origin: center; animation: breathe 7s ease-in-out infinite; }
+  .ripple:nth-of-type(2) { animation-delay: 1.2s; }
+  .ripple:nth-of-type(3) { animation-delay: 2.4s; }
+  @keyframes breathe { 0%,100% { transform: scale(1); opacity: .55; } 50% { transform: scale(1.06); opacity: .9; } }
+  @media (max-width: 860px) { .hero-grid { grid-template-columns: 1fr; } .art { max-width: 420px; aspect-ratio: 1; } }
+
+  /* Services */
+  .head { display: flex; justify-content: space-between; align-items: end; gap: 24px; flex-wrap: wrap; margin-bottom: 48px; }
+  .head p { color: var(--stone); }
+  .services { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .service { background: var(--linen); border-radius: var(--radius); padding: 32px; display: flex; flex-direction: column; gap: 14px; }
+  .service p { color: var(--stone); }
+  .prices { display: flex; gap: 10px; flex-wrap: wrap; margin-top: auto; padding-top: 8px; }
+  .price { background: var(--mist); border-radius: 999px; padding: 6px 14px; font-size: .92rem; }
+  .price b { font-weight: 600; }
+  @media (max-width: 760px) { .services { grid-template-columns: 1fr; } }
+
+  /* Session steps */
+  .band { background: var(--pine); color: var(--linen); border-radius: 32px; margin: 0 12px; }
+  .band h2 { color: var(--linen); }
+  .band .head p { color: var(--sea-glass); }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; list-style: none; padding: 0; margin: 0; counter-reset: step; }
+  .steps li { counter-increment: step; border-top: 1px solid color-mix(in srgb, var(--sea-glass) 40%, transparent); padding-top: 20px; }
+  .steps li::before { content: counter(step); font-family: "Instrument Serif", serif; font-size: 2.4rem; color: var(--sea-glass); display: block; margin-bottom: 8px; }
+  .steps h3 { font-size: 1.35rem; margin-bottom: 8px; }
+  .steps p { color: var(--sea-glass); font-size: .98rem; }
+  @media (max-width: 860px) { .steps { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .steps { grid-template-columns: 1fr; } }
+
+  /* About */
+  .about { display: grid; grid-template-columns: .8fr 1.2fr; gap: 56px; align-items: center; }
+  .portrait { aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--linen), var(--sea-glass) 60%, var(--eucalyptus)); display: grid; place-items: center; font-family: "Instrument Serif", serif; font-size: 5rem; color: var(--pine); }
+  .about p + p { margin-top: 16px; }
+  .creds { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+  .creds span { background: var(--sea-glass); border-radius: 999px; padding: 6px 14px; font-size: .92rem; }
+  @media (max-width: 760px) { .about { grid-template-columns: 1fr; } .portrait { max-width: 240px; } }
+
+  /* Reviews */
+  .reviews { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  blockquote { margin: 0; background: var(--linen); border-radius: var(--radius); padding: 28px; display: flex; flex-direction: column; gap: 18px; }
+  blockquote p { font-family: "Instrument Serif", serif; font-size: 1.45rem; line-height: 1.3; }
+  blockquote footer { color: var(--stone); font-size: .95rem; }
+  @media (max-width: 860px) { .reviews { grid-template-columns: 1fr; } }
+
+  /* Booking */
+  .book { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+  .visit dl { margin: 28px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 10px 24px; }
+  .visit dt { color: var(--stone); }
+  .visit dd { margin: 0; }
+  form { background: var(--linen); border-radius: var(--radius); padding: 32px; display: grid; gap: 18px; }
+  label { display: grid; gap: 6px; font-weight: 500; font-size: .95rem; }
+  input, select, textarea {
+    font: inherit; color: var(--pine); background: var(--mist);
+    border: 1.5px solid transparent; border-radius: 12px; padding: 12px 14px;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--eucalyptus); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .status { min-height: 1.5em; color: var(--eucalyptus); font-weight: 600; }
+  .status.error { color: #9B3B32; }
+  @media (max-width: 760px) { .book, .row { grid-template-columns: 1fr; } }
+
+  .site-footer { padding: 40px 0 56px; color: var(--stone); font-size: .95rem; }
+  .site-footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+
+  /* Page-load reveal */
+  .reveal { opacity: 0; transform: translateY(14px); animation: rise .8s ease forwards; }
+  .reveal.d1 { animation-delay: .1s; } .reveal.d2 { animation-delay: .25s; } .reveal.d3 { animation-delay: .4s; } .reveal.d4 { animation-delay: .55s; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .reveal { opacity: 1; transform: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap nav" aria-label="Main">
+    <a class="logo" href="#top">Stillwater</a>
+    <ul>
+      <li><a href="#services">Massages</a></li>
+      <li><a href="#session">Your visit</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#book">Contact</a></li>
+    </ul>
+    <a class="btn" href="#book">Book a session</a>
+  </nav>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <h1 class="reveal d1">Let your shoulders <em>come down</em> from your ears.</h1>
+        <p class="reveal d2">Therapeutic massage in a quiet, one-room studio. Every session is shaped around where you hurt, how you move and how much pressure feels right.</p>
+        <div class="hero-actions reveal d3">
+          <a class="btn" href="#book">Book a session</a>
+          <a class="btn ghost" href="#services">See massages and prices</a>
+        </div>
+        <div class="trust reveal d4">
+          <span><strong>4.9 stars</strong> from 320+ reviews</span>
+          <span><strong>Open 7 days</strong> 9am to 8pm</span>
+          <span><strong>Licensed</strong> LMT, 12 years</span>
+        </div>
+      </div>
+      <div class="art reveal d2" aria-hidden="true">
+        <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice">
+          <ellipse class="ripple" cx="200" cy="250" rx="190" ry="34" fill="none" stroke="#EDF2EE" stroke-width="1.5"/>
+          <ellipse class="ripple" cx="200" cy="250" rx="140" ry="24" fill="none" stroke="#EDF2EE" stroke-width="1.5"/>
+          <ellipse class="ripple" cx="200" cy="250" rx="90" ry="15" fill="none" stroke="#EDF2EE" stroke-width="1.5"/>
+          <ellipse cx="200" cy="232" rx="78" ry="26" fill="#1E3B35"/>
+          <ellipse cx="200" cy="192" rx="58" ry="22" fill="#2E5149"/>
+          <ellipse cx="200" cy="158" rx="40" ry="17" fill="#3F6A5E"/>
+          <ellipse cx="200" cy="131" rx="24" ry="12" fill="#CFE0D6"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section id="services">
+    <div class="wrap">
+      <div class="head">
+        <h2>Massages</h2>
+        <p>Not sure which to pick? Book the one closest to what you need. We'll adjust once you're on the table.</p>
+      </div>
+      <div class="services">
+        <article class="service">
+          <h3>Deep tissue</h3>
+          <p>Slow, firm work on stubborn knots, desk-neck and lower back tension. Expect to feel it the next day, in a good way.</p>
+          <div class="prices"><span class="price"><b>60 min</b> $95</span><span class="price"><b>90 min</b> $135</span></div>
+        </article>
+        <article class="service">
+          <h3>Swedish relaxation</h3>
+          <p>Long, flowing strokes with light to medium pressure. Good for stress, sleep and a first massage.</p>
+          <div class="prices"><span class="price"><b>60 min</b> $85</span><span class="price"><b>90 min</b> $120</span></div>
+        </article>
+        <article class="service">
+          <h3>Sports and recovery</h3>
+          <p>Stretching and targeted work for runners, lifters and weekend athletes. Before an event or after a hard week.</p>
+          <div class="prices"><span class="price"><b>45 min</b> $75</span><span class="price"><b>75 min</b> $115</span></div>
+        </article>
+        <article class="service">
+          <h3>Prenatal</h3>
+          <p>Side-lying support with pillows for comfort from the second trimester on. Eases hips, back and swollen feet.</p>
+          <div class="prices"><span class="price"><b>60 min</b> $95</span></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="session" class="band">
+    <div class="wrap">
+      <div class="head">
+        <h2>How your visit goes</h2>
+        <p>First time here? Arrive 10 minutes early. Everything else, we'll walk you through.</p>
+      </div>
+      <ol class="steps">
+        <li><h3>Check in</h3><p>A short chat about where it hurts, injuries and the pressure you like.</p></li>
+        <li><h3>Settle in</h3><p>You undress to your comfort level and get under the sheets in a warm room.</p></li>
+        <li><h3>The massage</h3><p>Speak up anytime: more pressure, less, or skip an area entirely.</p></li>
+        <li><h3>Take it home</h3><p>Water, a minute to sit up slowly, and a stretch or two to try this week.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="about">
+    <div class="wrap about">
+      <div class="portrait" aria-hidden="true">M</div>
+      <div>
+        <h2>Hi, I'm Maya.</h2>
+        <p style="margin-top:20px">I've been a licensed massage therapist for 12 years, the last six in this little studio. Most of my clients come in with tight shoulders, sore backs or old sports injuries, and leave moving a bit easier.</p>
+        <p>I listen first and keep the room calm, warm and unhurried. No upselling, no scented-candle overload.</p>
+        <div class="creds"><span>Licensed massage therapist</span><span>Prenatal certified</span><span>Sports massage training</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="head"><h2>What clients say</h2></div>
+      <div class="reviews">
+        <blockquote><p>"First massage that actually fixed my neck instead of just feeling nice."</p><footer>Jordan, software engineer</footer></blockquote>
+        <blockquote><p>"The prenatal session was the best sleep I had all trimester."</p><footer>Priya, regular since 2023</footer></blockquote>
+        <blockquote><p>"Quiet room, no rush, and she remembers what my back needs."</p><footer>Sam, marathon runner</footer></blockquote>
+      </div>
+    </div>
+  </section>
+
+  <section id="book">
+    <div class="wrap book">
+      <div class="visit">
+        <h2>Book a session</h2>
+        <p style="margin-top:20px">Send a request and you'll get a confirmation by text within a few hours. Need same-day? Call the studio.</p>
+        <dl>
+          <dt>Studio</dt><dd>214 Willow Lane, Suite 3</dd>
+          <dt>Phone</dt><dd><a href="tel:+15555550142">(555) 555-0142</a></dd>
+          <dt>Hours</dt><dd>Every day, 9am to 8pm</dd>
+          <dt>Parking</dt><dd>Free lot behind the building</dd>
+        </dl>
+      </div>
+      <form id="booking" novalidate>
+        <label>Your name<input name="name" autocomplete="name" required></label>
+        <div class="row">
+          <label>Phone<input name="phone" type="tel" autocomplete="tel" required></label>
+          <label>Preferred date<input name="date" type="date" required></label>
+        </div>
+        <label>Massage
+          <select name="service">
+            <option>Deep tissue</option>
+            <option>Swedish relaxation</option>
+            <option>Sports and recovery</option>
+            <option>Prenatal</option>
+          </select>
+        </label>
+        <label>Anything I should know? <span style="color:var(--stone);font-weight:400">(optional)</span><textarea name="notes" rows="3"></textarea></label>
+        <button class="btn" type="submit">Request booking</button>
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>Stillwater Massage</span>
+    <span>214 Willow Lane, Suite 3 · (555) 555-0142</span>
+  </div>
+</footer>
+
+<script>
+  const form = document.getElementById('booking');
+  const status = document.getElementById('status');
+  form.date.min = new Date().toISOString().split('T')[0];
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const missing = ['name', 'phone', 'date'].filter((f) => !form[f].value.trim());
+    if (missing.length) {
+      status.className = 'status error';
+      status.textContent = 'Add your name, phone and a date so we can confirm your spot.';
+      form[missing[0]].focus();
+      return;
+    }
+    status.className = 'status';
+    status.textContent = `Requested. We'll text ${form.phone.value} to confirm your ${form.service.value.toLowerCase()} session.`;
+    form.reset();
+  });
+</script>
+</body>
+</html>
