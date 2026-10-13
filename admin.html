@@ -27,27 +27,27 @@
 
 <main class="wrap admin" hidden>
   <h1>Studio</h1>
-  <dl class="facts stats" id="stats"></dl>
+  <dl class="facts stats" id="stats"><div><dt>New requests</dt><dd><span class="skeleton skeleton-pill"></span></dd></div><div><dt>Upcoming visits</dt><dd><span class="skeleton skeleton-pill"></span></dd></div><div><dt>Clients</dt><dd><span class="skeleton skeleton-pill"></span></dd></div></dl>
 
   <section id="requests">
     <h2>Booking requests</h2>
     <p class="hint">Pick a time and confirm to turn a request into an appointment.</p>
-    <div class="table-wrap"><table><thead><tr><th>Sent</th><th>Name</th><th>Contact</th><th>Wants</th><th>Notes</th><th>Status</th><th></th></tr></thead><tbody id="req-rows"></tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>Sent</th><th>Name</th><th>Contact</th><th>Wants</th><th>Notes</th><th>Status</th><th></th></tr></thead><tbody id="req-rows" aria-busy="true"><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr></tbody></table></div>
   </section>
 
   <section id="appointments">
     <h2>Appointments</h2>
-    <div class="table-wrap"><table><thead><tr><th>When</th><th>Client</th><th>Massage</th><th>Price</th><th>Reminder</th><th>Status</th></tr></thead><tbody id="appt-rows"></tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>When</th><th>Client</th><th>Massage</th><th>Price</th><th>Reminder</th><th>Status</th></tr></thead><tbody id="appt-rows" aria-busy="true"><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr></tbody></table></div>
   </section>
 
   <section id="clients">
     <h2>Clients</h2>
-    <div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Pressure</th><th>Health notes</th><th>Joined</th></tr></thead><tbody id="client-rows"></tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Pressure</th><th>Health notes</th><th>Joined</th></tr></thead><tbody id="client-rows" aria-busy="true"><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr></tbody></table></div>
   </section>
 
   <section id="reminders">
     <h2>Reminders sent</h2>
-    <div class="table-wrap"><table><thead><tr><th>When</th><th>Channel</th><th>To</th><th>Result</th></tr></thead><tbody id="note-rows"></tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>When</th><th>Channel</th><th>To</th><th>Result</th></tr></thead><tbody id="note-rows" aria-busy="true"><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr></tbody></table></div>
   </section>
 </main>
 
