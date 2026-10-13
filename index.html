@@ -148,9 +148,8 @@
         <label>Your name<input name="name" autocomplete="name" required></label>
         <div class="row">
           <label>Phone<input name="phone" type="tel" autocomplete="tel" required></label>
-          <label>Preferred date<input name="date" type="date" required></label>
+          <label>Email <span class="opt">(optional, for reminders)</span><input name="email" type="email" autocomplete="email"></label>
         </div>
-        <label>Email <span class="opt">(optional, for reminders)</span><input name="email" type="email" autocomplete="email"></label>
         <div class="row">
           <label>Massage
             <select name="service">
@@ -167,6 +166,13 @@
             </select>
           </label>
         </div>
+        <div class="row">
+          <label>Day <span class="opt">(Sun or Mon)</span><input name="date" type="date" required></label>
+          <label>Time
+            <select name="time" required disabled><option value="">Pick a day first</option></select>
+          </label>
+        </div>
+        <p class="hint">Sessions run 9am to 8pm with a 20 minute break between clients, so taken times are hidden.</p>
         <fieldset class="addon-picks">
           <legend>Add-ons <span class="opt">(optional)</span></legend>
           <label class="check"><input type="checkbox" name="addon" value="Cupping"> Cupping, +$15</label>

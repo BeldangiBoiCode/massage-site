@@ -223,3 +223,5 @@ td select { padding: 6px 10px; width: auto; }
 .addon-picks legend { font-weight: 500; font-size: .95rem; padding: 0; margin-bottom: 8px; }
 label.check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
 label.check input { width: auto; accent-color: var(--pine); }
+.hint { color: var(--stone); font-size: .9rem; margin-top: -8px; }
+select:disabled { opacity: .7; }

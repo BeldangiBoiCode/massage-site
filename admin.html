@@ -92,12 +92,12 @@ async function load() {
       <td>${day(r.created_at)}</td>
       <td>${esc(r.name)}</td>
       <td><a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>${r.email ? `<br>${esc(r.email)}` : ''}</td>
-      <td>${esc(r.duration_min)} min ${esc(r.service)}<br>${esc(r.preferred_date)}</td>
+      <td>${esc(r.duration_min)} min ${esc(r.service)}<br>${esc(r.preferred_date)}${r.preferred_time ? ' ' + esc(r.preferred_time.slice(0, 5)) : ''}</td>
       <td>${esc(r.notes)}</td>
       <td><span class="tag ${esc(r.status)}">${esc(r.status)}</span></td>
       <td>${r.status === 'new' ? `
         <div class="row-actions">
-          <input type="datetime-local" aria-label="Appointment time for ${esc(r.name)}" id="t${r.id}" value="${esc(r.preferred_date)}T10:00">
+          <input type="datetime-local" aria-label="Appointment time for ${esc(r.name)}" id="t${r.id}" value="${esc(r.preferred_date)}T${esc((r.preferred_time || '10:00').slice(0, 5))}">
           <button class="btn small" data-confirm="${r.id}">Confirm</button>
           <button class="btn small ghost" data-decline="${r.id}">Decline</button>
         </div>` : ''}</td>

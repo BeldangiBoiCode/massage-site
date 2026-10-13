@@ -94,7 +94,7 @@ let user;
 
   const { data: reqs } = await sb.from('booking_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
   document.getElementById('requests').innerHTML = reqs?.length
-    ? reqs.map((r) => `<li><b>${esc(r.preferred_date)}</b><span>${esc(r.service)}</span><span class="tag ${esc(r.status)}">${esc(r.status)}</span></li>`).join('')
+    ? reqs.map((r) => `<li><b>${esc(r.preferred_date)}${r.preferred_time ? ' ' + esc(r.preferred_time.slice(0, 5)) : ''}</b><span>${esc(r.service)}</span><span class="tag ${esc(r.status)}">${esc(r.status)}</span></li>`).join('')
     : '<li class="empty">No requests yet.</li>';
 })();
 

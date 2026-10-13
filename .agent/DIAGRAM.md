@@ -16,19 +16,20 @@ flowchart LR
 ## Key files
 - `index.html` → homepage. Booking form has email + length fields. Header "Sign in" link (`#account-link`) swaps to "My account".
 - `styles.css` → all styles. Tokens in `:root`. Sections: site, then Sign in, Account, Admin at the end.
-- `app.js` → booking form → insert `booking_requests`; prefills from profile when signed in.
+- `app.js` → booking form: day (Sun/Mon) + time slots from `busy_slots()` (9am-8pm, 20 min break, 20 min grid) → insert `booking_requests`; prefills from profile.
 - `supabase-client.js` → SUPABASE_URL + anon key, `sb` client, `currentUser()`, `isAdmin()`, `esc()`.
 - `login.html` → Google / Apple OAuth + email magic link → redirects to account.html.
 - `account.html` → customer profile edit, their visits (`my_appointments()` rpc) and requests.
 - `admin.html` → owner only (`is_admin()`): stats, requests (confirm → appointment), appointments status, clients, reminder log.
 - `supabase/migrations/*_init.sql` → tables, RLS, signup trigger, `is_admin()`, `my_appointments()`.
+- `supabase/migrations/*_time_slots.sql` → `preferred_time` column, `busy_slots(d)` RPC (anon ok, no PII), `check_booking_slot()` insert trigger (hours + overlap + break).
 - `supabase/migrations/*_reminder_cron.sql` → pg_cron job hourly → Edge Function. Reads Vault secrets `project_url`, `cron_secret`.
 - `supabase/functions/send-reminders/index.ts` → emails/texts appointments in next 24h, logs to `notifications`.
 
 ## Data (Supabase, RLS on all)
 - `admins`: user_id. Whoever is in here sees everything. Seed by hand after first login.
 - `profiles`: id (= auth user), full_name, email, phone, birthday, pressure_pref, health_notes, email_reminders, sms_reminders. Own row or admin.
-- `booking_requests`: id, user_id?, name, phone, email, service, duration_min, preferred_date, notes, status(new/confirmed/declined). Public insert; own/admin read.
+- `booking_requests`: id, user_id?, name, phone, email, service, duration_min, preferred_date, preferred_time, notes, status(new/confirmed/declined). Public insert; own/admin read.
 - `appointments`: id, user_id, booking_id, client_*, service, starts_at, duration_min, price, status, therapist_notes, reminder_sent_at. Admin only; clients via `my_appointments()` (no notes).
 - `notifications`: appointment_id, channel(email/sms), sent_to, status, error. Admin read.
 
