@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio admin | Namaste Nirvana</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="site-header">
+  <nav class="wrap nav" aria-label="Admin">
+    <a class="logo" href="./">Namaste Nirvana</a>
+    <ul>
+      <li><a href="#requests">Requests</a></li>
+      <li><a href="#appointments">Appointments</a></li>
+      <li><a href="#clients">Clients</a></li>
+      <li><a href="#reminders">Reminders</a></li>
+    </ul>
+    <a class="btn small ghost" href="account.html">My account</a>
+  </nav>
+</header>
+
+<main class="wrap admin" hidden>
+  <h1>Studio</h1>
+  <dl class="facts stats" id="stats"></dl>
+
+  <section id="requests">
+    <h2>Booking requests</h2>
+    <p class="hint">Pick a time and confirm to turn a request into an appointment.</p>
+    <div class="table-wrap"><table><thead><tr><th>Sent</th><th>Name</th><th>Contact</th><th>Wants</th><th>Notes</th><th>Status</th><th></th></tr></thead><tbody id="req-rows"></tbody></table></div>
+  </section>
+
+  <section id="appointments">
+    <h2>Appointments</h2>
+    <div class="table-wrap"><table><thead><tr><th>When</th><th>Client</th><th>Massage</th><th>Price</th><th>Reminder</th><th>Status</th></tr></thead><tbody id="appt-rows"></tbody></table></div>
+  </section>
+
+  <section id="clients">
+    <h2>Clients</h2>
+    <div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Pressure</th><th>Health notes</th><th>Joined</th></tr></thead><tbody id="client-rows"></tbody></table></div>
+  </section>
+
+  <section id="reminders">
+    <h2>Reminders sent</h2>
+    <div class="table-wrap"><table><thead><tr><th>When</th><th>Channel</th><th>To</th><th>Result</th></tr></thead><tbody id="note-rows"></tbody></table></div>
+  </section>
+</main>
+
+<main class="wrap auth-page" id="denied" hidden>
+  <div class="auth-card"><h1>Not for you</h1><p class="lead">This page is only for the studio owner.</p><a class="btn" href="./">Back to the site</a></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="supabase-client.js"></script>
+<script>
+const PRICES = { 60: 85, 90: 120, 120: 200 };
+const fmt = (iso) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const day = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+const empty = (cols, msg) => `<tr><td colspan="${cols}" class="empty">${msg}</td></tr>`;
+let requests = [];
+
+(async () => {
+  if (!(await currentUser())) return location.replace('login.html');
+  if (!(await isAdmin())) { document.getElementById('denied').hidden = false; return; }
+  document.querySelector('main.admin').hidden = false;
+  load();
+})();
+
+async function load() {
+  const [req, appt, cli, notes] = await Promise.all([
+    sb.from('booking_requests').select('*').order('created_at', { ascending: false }).limit(200),
+    sb.from('appointments').select('*').order('starts_at', { ascending: false }).limit(200),
+    sb.from('profiles').select('*').order('created_at', { ascending: false }),
+    sb.from('notifications').select('*').order('created_at', { ascending: false }).limit(100),
+  ]);
+  requests = req.data ?? [];
+  const appts = appt.data ?? [], clients = cli.data ?? [], sent = notes.data ?? [];
+  const now = Date.now();
+
+  document.getElementById('stats').innerHTML = [
+    ['New requests', requests.filter((r) => r.status === 'new').length],
+    ['Upcoming visits', appts.filter((a) => a.status === 'scheduled' && new Date(a.starts_at) > now).length],
+    ['Clients', clients.length],
+  ].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+
+  document.getElementById('req-rows').innerHTML = requests.length ? requests.map((r) => `
+    <tr>
+      <td>${day(r.created_at)}</td>
+      <td>${esc(r.name)}</td>
+      <td><a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>${r.email ? `<br>${esc(r.email)}` : ''}</td>
+      <td>${esc(r.duration_min)} min ${esc(r.service)}<br>${esc(r.preferred_date)}</td>
+      <td>${esc(r.notes)}</td>
+      <td><span class="tag ${esc(r.status)}">${esc(r.status)}</span></td>
+      <td>${r.status === 'new' ? `
+        <div class="row-actions">
+          <input type="datetime-local" aria-label="Appointment time for ${esc(r.name)}" id="t${r.id}" value="${esc(r.preferred_date)}T10:00">
+          <button class="btn small" data-confirm="${r.id}">Confirm</button>
+          <button class="btn small ghost" data-decline="${r.id}">Decline</button>
+        </div>` : ''}</td>
+    </tr>`).join('') : empty(7, 'No requests yet. They show up here when someone uses the booking form.');
+
+  document.getElementById('appt-rows').innerHTML = appts.length ? appts.map((a) => `
+    <tr>
+      <td>${fmt(a.starts_at)}</td>
+      <td>${esc(a.client_name)}<br><a href="tel:${esc(a.client_phone)}">${esc(a.client_phone)}</a></td>
+      <td>${esc(a.duration_min)} min ${esc(a.service)}</td>
+      <td>${a.price ? '$' + esc(a.price) : ''}</td>
+      <td>${a.reminder_sent_at ? fmt(a.reminder_sent_at) : 'Not yet'}</td>
+      <td><select data-appt="${a.id}" aria-label="Status">
+        ${['scheduled', 'done', 'cancelled', 'no_show'].map((s) => `<option value="${s}" ${s === a.status ? 'selected' : ''}>${s.replace('_', ' ')}</option>`).join('')}
+      </select></td>
+    </tr>`).join('') : empty(6, 'No appointments yet. Confirm a request to add one.');
+
+  document.getElementById('client-rows').innerHTML = clients.length ? clients.map((c) => `
+    <tr><td>${esc(c.full_name) || '<span class="opt">No name yet</span>'}</td><td>${esc(c.email)}</td><td>${esc(c.phone)}</td>
+    <td>${esc(c.pressure_pref)}</td><td>${esc(c.health_notes)}</td><td>${day(c.created_at)}</td></tr>`).join('')
+    : empty(6, 'No client profiles yet.');
+
+  document.getElementById('note-rows').innerHTML = sent.length ? sent.map((n) => `
+    <tr><td>${fmt(n.created_at)}</td><td>${esc(n.channel)}</td><td>${esc(n.sent_to)}</td>
+    <td><span class="tag ${n.status === 'sent' ? 'confirmed' : 'declined'}">${esc(n.status)}</span>${n.error ? `<br><small>${esc(n.error.slice(0, 120))}</small>` : ''}</td></tr>`).join('')
+    : empty(4, 'No reminders sent yet. They go out automatically the day before each visit.');
+}
+
+document.addEventListener('click', async (e) => {
+  const confirmId = e.target.dataset.confirm, declineId = e.target.dataset.decline;
+  if (declineId) {
+    await sb.from('booking_requests').update({ status: 'declined' }).eq('id', declineId);
+    return load();
+  }
+  if (confirmId) {
+    const r = requests.find((x) => String(x.id) === confirmId);
+    const t = document.getElementById('t' + confirmId).value;
+    if (!t) return alert('Pick a time first.');
+    const { error } = await sb.from('appointments').insert({
+      booking_id: r.id, user_id: r.user_id, client_name: r.name, client_phone: r.phone, client_email: r.email,
+      service: r.service, duration_min: r.duration_min, price: PRICES[r.duration_min], starts_at: new Date(t).toISOString(),
+    });
+    if (error) return alert(error.message);
+    await sb.from('booking_requests').update({ status: 'confirmed' }).eq('id', r.id);
+    load();
+  }
+});
+
+document.addEventListener('change', async (e) => {
+  const id = e.target.dataset.appt;
+  if (id) await sb.from('appointments').update({ status: e.target.value }).eq('id', id);
+});
+</script>
+</body>
+</html>

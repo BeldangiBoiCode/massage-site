@@ -1,35 +1,42 @@
 # Namaste Nirvana Massage (Nikesh Pokhrel, South Burlington VT)
-Static massage therapy site on GitHub Pages. Plain HTML + CSS + vanilla JS, Google Fonts (Instrument Serif, Figtree). No build step.
+Static massage site on GitHub Pages + Supabase (auth, Postgres, Edge Functions, pg_cron). Plain HTML/CSS/vanilla JS, supabase-js 2.45.4 from jsdelivr. No build step.
 Repo: BeldangiBoiCode/massage-site. Live: https://beldangiboicode.github.io/massage-site/
 
 ```mermaid
 flowchart LR
-  Visitor --> Pages[GitHub Pages: index.html + styles.css + app.js]
-  Pages --> Fonts[Google Fonts CDN]
-  Pages -. booking form, phase 2 .-> SB[(Supabase: booking_requests)]
-  Nikesh[Nikesh: admin.html, phase 3] -. Supabase Auth .-> SB
-  Client[Client: portal.html, phase 4] -. magic link .-> SB
+  Visitor --> Pages[GitHub Pages: index / login / account / admin]
+  Pages -- supabase-js anon key --> Auth[Supabase Auth: Google, Apple, email link]
+  Pages -- booking form insert --> SB[(Postgres + RLS)]
+  Auth -- trigger --> SB
+  Cron[pg_cron hourly] -- pg_net --> Fn[Edge Fn send-reminders]
+  Fn -- service role --> SB
+  Fn --> Resend[Resend email] & Twilio[Twilio SMS, optional]
 ```
 
 ## Key files
-- `index.html` → page markup: header, hero + facts strip, services/prices, price menu (one price for all types), first visit steps, about Nikesh, booking form + address, footer, mobile book button.
-- `styles.css` → all styles. Tokens in `:root` (pine, eucalyptus, mist, sea-glass, linen, stone). Sections in page order.
-- `app.js` → booking form validation + confirmation message. Client side only, saves nothing yet.
-- `.claude/DIAGRAM.md` → this file.
+- `index.html` → homepage. Booking form has email + length fields. Header "Sign in" link (`#account-link`) swaps to "My account".
+- `styles.css` → all styles. Tokens in `:root`. Sections: site, then Sign in, Account, Admin at the end.
+- `app.js` → booking form → insert `booking_requests`; prefills from profile when signed in.
+- `supabase-client.js` → SUPABASE_URL + anon key, `sb` client, `currentUser()`, `isAdmin()`, `esc()`.
+- `login.html` → Google / Apple OAuth + email magic link → redirects to account.html.
+- `account.html` → customer profile edit, their visits (`my_appointments()` rpc) and requests.
+- `admin.html` → owner only (`is_admin()`): stats, requests (confirm → appointment), appointments status, clients, reminder log.
+- `supabase/migrations/*_init.sql` → tables, RLS, signup trigger, `is_admin()`, `my_appointments()`.
+- `supabase/migrations/*_reminder_cron.sql` → pg_cron job hourly → Edge Function. Reads Vault secrets `project_url`, `cron_secret`.
+- `supabase/functions/send-reminders/index.ts` → emails/texts appointments in next 24h, logs to `notifications`.
 
-## Data (planned, not built)
-Supabase project not created yet. Planned tables (RLS on all):
-- `booking_requests`: id, name, phone, email, service, preferred_date, notes, status(new/confirmed/declined), created_at. Public: insert only.
-- `clients`: id, auth_user_id, full_name, phone, email, birthday, created_at. Nikesh: all; client: own row.
-- `client_intake`: client_id, health_notes, injuries, pressure_pref, allergies, updated_at. Health data, so never public. Nikesh and the owning client only.
-- `appointments`: id, client_id, service, starts_at, duration_min, price, status, therapist_notes.
-- `memberships`: client_id, plan, started_at, sessions_banked, status.
+## Data (Supabase, RLS on all)
+- `admins`: user_id. Whoever is in here sees everything. Seed by hand after first login.
+- `profiles`: id (= auth user), full_name, email, phone, birthday, pressure_pref, health_notes, email_reminders, sms_reminders. Own row or admin.
+- `booking_requests`: id, user_id?, name, phone, email, service, duration_min, preferred_date, notes, status(new/confirmed/declined). Public insert; own/admin read.
+- `appointments`: id, user_id, booking_id, client_*, service, starts_at, duration_min, price, status, therapist_notes, reminder_sent_at. Admin only; clients via `my_appointments()` (no notes).
+- `notifications`: appointment_id, channel(email/sms), sent_to, status, error. Admin read.
 
-## Roadmap
-1. Done: static site live (2026-10-13).
-2. Booking form → insert into `booking_requests` (supabase-js from pinned CDN, anon key).
-3. `admin.html`: Nikesh logs in (Supabase Auth email) and sees requests, clients, appointments.
-4. `portal.html`: client magic-link login with their profile, intake form and visit history.
+## Setup checklist (manual, dashboard)
+- Auth → URL config: site URL + redirect `https://beldangiboicode.github.io/massage-site/account.html` and `http://localhost:8000/account.html`.
+- Google: Google Cloud OAuth client (web), redirect `https://<ref>.supabase.co/auth/v1/callback` → paste ID/secret in Auth → Providers → Google.
+- Apple: needs paid Apple Developer account. Services ID + Sign in with Apple key → Auth → Providers → Apple.
+- Edge Fn secrets: CRON_SECRET, RESEND_API_KEY (+ TWILIO_SID/TOKEN/FROM for SMS). Deploy with verify_jwt off.
 
 ## Run / deploy
 - Local: `cd ~/massage-site && python3 -m http.server 8000` → http://localhost:8000
@@ -40,4 +47,5 @@ Supabase project not created yet. Planned tables (RLS on all):
 - 2026-10-13: Auto-push to GitHub `main` after each change, no asking (user said so). Keep replies short and simple.
 - 2026-10-13: Only real facts on the site. Real info from user: name, phone (802) 373-9672, namastenirvanamassage@gmail.com, prices 60/90/120 min = $85/$120/$200, hours Sun + Mon 9am-8pm, 2 yrs pro, learning since age 11. No reviews yet.
 - 2026-10-13: Membership dropped per user.
+- 2026-10-13: Supabase backend added. Email login = magic link (no passwords). Admin = `admins` table, not email match.
 - Client health data stays out of GitHub. It only lives in Supabase behind RLS.

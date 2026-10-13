@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My account | Namaste Nirvana Massage</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="site-header">
+  <nav class="wrap nav" aria-label="Main">
+    <a class="logo" href="./">Namaste Nirvana</a>
+    <div class="nav-actions">
+      <a class="btn small ghost" id="admin-link" href="admin.html" hidden>Admin</a>
+      <button class="btn small ghost" id="sign-out" type="button">Sign out</button>
+    </div>
+  </nav>
+</header>
+
+<main class="wrap account" hidden>
+  <div class="account-head">
+    <h1 id="hello">Your profile</h1>
+    <a class="btn" href="./#book">Book a session</a>
+  </div>
+
+  <div class="account-grid">
+    <form id="profile" novalidate>
+      <h2>Your details</h2>
+      <label>Full name<input name="full_name" autocomplete="name" required></label>
+      <div class="row">
+        <label>Phone<input name="phone" type="tel" autocomplete="tel"></label>
+        <label>Birthday <span class="opt">(optional)</span><input name="birthday" type="date"></label>
+      </div>
+      <label>Pressure you like
+        <select name="pressure_pref">
+          <option value="">Not sure yet</option>
+          <option value="light">Light</option>
+          <option value="medium">Medium</option>
+          <option value="firm">Firm</option>
+        </select>
+      </label>
+      <label>Injuries, health notes or areas to avoid <span class="opt">(only Nikesh sees this)</span>
+        <textarea name="health_notes" rows="4"></textarea>
+      </label>
+      <fieldset>
+        <legend>Reminders the day before</legend>
+        <label class="check"><input type="checkbox" name="email_reminders"> Email</label>
+        <label class="check"><input type="checkbox" name="sms_reminders"> Text message</label>
+      </fieldset>
+      <button class="btn" type="submit">Save profile</button>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </form>
+
+    <div class="history">
+      <h2>Your visits</h2>
+      <ul class="list" id="appts"></ul>
+      <h2>Your requests</h2>
+      <ul class="list" id="requests"></ul>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="supabase-client.js"></script>
+<script>
+const form = document.getElementById('profile');
+const status = document.getElementById('status');
+const fmt = (iso) => new Date(iso).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+let user;
+
+(async () => {
+  user = await currentUser();
+  if (!user) return location.replace('login.html');
+  document.querySelector('main').hidden = false;
+  if (await isAdmin()) document.getElementById('admin-link').hidden = false;
+
+  const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).single();
+  if (p) {
+    for (const k of ['full_name', 'phone', 'birthday', 'health_notes']) form[k].value = p[k] ?? '';
+    form.pressure_pref.value = p.pressure_pref ?? '';
+    form.email_reminders.checked = p.email_reminders;
+    form.sms_reminders.checked = p.sms_reminders;
+    if (p.full_name) document.getElementById('hello').textContent = `Hi, ${p.full_name.split(' ')[0]}.`;
+  }
+
+  const { data: appts } = await sb.rpc('my_appointments');
+  document.getElementById('appts').innerHTML = appts?.length
+    ? appts.map((a) => `<li><b>${esc(fmt(a.starts_at))}</b><span>${esc(a.duration_min)} min ${esc(a.service)}</span><span class="tag ${esc(a.status)}">${esc(a.status.replace('_', ' '))}</span></li>`).join('')
+    : '<li class="empty">No visits yet. Book your first one and it shows up here.</li>';
+
+  const { data: reqs } = await sb.from('booking_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+  document.getElementById('requests').innerHTML = reqs?.length
+    ? reqs.map((r) => `<li><b>${esc(r.preferred_date)}</b><span>${esc(r.service)}</span><span class="tag ${esc(r.status)}">${esc(r.status)}</span></li>`).join('')
+    : '<li class="empty">No requests yet.</li>';
+})();
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!form.full_name.value.trim()) {
+    status.className = 'status error'; status.textContent = 'Add your name so Nikesh knows who is coming.'; form.full_name.focus(); return;
+  }
+  const { error } = await sb.from('profiles').update({
+    full_name: form.full_name.value.trim(),
+    phone: form.phone.value.trim() || null,
+    birthday: form.birthday.value || null,
+    pressure_pref: form.pressure_pref.value || null,
+    health_notes: form.health_notes.value.trim() || null,
+    email_reminders: form.email_reminders.checked,
+    sms_reminders: form.sms_reminders.checked,
+    updated_at: new Date().toISOString(),
+  }).eq('id', user.id);
+  status.className = error ? 'status error' : 'status';
+  status.textContent = error ? error.message : 'Saved.';
+});
+
+document.getElementById('sign-out').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  location.replace('./');
+});
+</script>
+</body>
+</html>
