@@ -16,13 +16,13 @@ flowchart LR
 ## Key files
 - `index.html` → homepage. Booking form has email + length fields. Header "Sign in" link (`#account-link`) swaps to "My account".
 - `styles.css` → all styles. Tokens in `:root`. Sections: site, then Sign in, Account, Admin at the end.
-- `app.js` → booking form: day (Sun/Mon) + time slots from `busy_slots()` (9am-8pm, 20 min break, 20 min grid) → insert `booking_requests`; prefills from profile.
+- `app.js` → booking form: day (Sun/Mon) + time slots from `busy_slots()` (9am-8pm, starts on :00/:30 only, hidden 20 min break) → insert `booking_requests`; prefills from profile.
 - `supabase-client.js` → SUPABASE_URL + anon key, `sb` client, `currentUser()`, `isAdmin()`, `esc()`.
 - `login.html` → Google / Apple OAuth + email magic link → redirects to account.html.
 - `account.html` → customer profile edit, their visits (`my_appointments()` rpc) and requests.
 - `admin.html` → owner only (`is_admin()`): stats, requests (confirm → appointment), appointments status, clients, reminder log.
 - `supabase/migrations/*_init.sql` → tables, RLS, signup trigger, `is_admin()`, `my_appointments()`.
-- `supabase/migrations/*_time_slots.sql` → `preferred_time` column, `busy_slots(d)` RPC (anon ok, no PII), `check_booking_slot()` insert trigger (hours + overlap + break).
+- `supabase/migrations/*_time_slots.sql` → `preferred_time` column, `busy_slots(d)` RPC (anon ok, no PII), `check_booking_slot()` insert trigger (hours + :00/:30 start + overlap + break).
 - `supabase/migrations/*_reminder_cron.sql` → pg_cron job hourly → Edge Function. Reads Vault secrets `project_url`, `cron_secret`.
 - `supabase/functions/send-reminders/index.ts` → emails/texts appointments in next 24h, logs to `notifications`.
 

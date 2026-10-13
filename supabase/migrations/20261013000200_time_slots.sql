@@ -29,6 +29,9 @@ begin
      or new.preferred_time + make_interval(mins => new.duration_min) < new.preferred_time then
     raise exception 'Sessions run between 9am and 8pm.';
   end if;
+  if extract(minute from new.preferred_time) not in (0, 30) or extract(second from new.preferred_time) <> 0 then
+    raise exception 'Pick a start time on the hour or half hour.';
+  end if;
   if exists (
     select 1 from busy_slots(new.preferred_date) b
      where new.preferred_time < b.start_time + make_interval(mins => b.duration_min + 20)

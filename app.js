@@ -4,7 +4,7 @@ const status = document.getElementById('status');
 const button = form.querySelector('button');
 
 // Hours: Sun + Mon, 9am to 8pm, 20 min break between sessions. Mirrors check_booking_slot() in Supabase.
-const OPEN = 9 * 60, CLOSE = 20 * 60, BREAK = 20, STEP = 20;
+const OPEN = 9 * 60, CLOSE = 20 * 60, BREAK = 20, STEP = 30; // starts on :00 or :30 only; break is hidden
 const OPEN_DAYS = [0, 1];
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -99,7 +99,7 @@ form.addEventListener('submit', async (e) => {
   if (error) {
     status.className = 'status error';
     // Slot rules from check_booking_slot() come back as readable messages.
-    status.textContent = /taken|Sunday|9am|Pick a time/.test(error.message)
+    status.textContent = /taken|Sunday|9am|Pick a/.test(error.message)
       ? error.message
       : 'That didn\'t go through. Call or text (802) 373-9672 and we\'ll book you by phone.';
     loadSlots();
