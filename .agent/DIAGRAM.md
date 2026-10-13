@@ -46,7 +46,7 @@ flowchart LR
 ## Gotchas / decisions
 - 2026-10-13: Design follows the `web-design` skill. Pine/eucalyptus/mist palette avoids the cream + terracotta spa default.
 - 2026-10-13: Auto-push to GitHub `main` after each change, no asking (user said so). Keep replies short and simple.
-- 2026-10-13: Only real facts on the site. Real info from user: name, phone (802) 373-9672, namastenirvanamassage@gmail.com, prices 60/90/120 min = $85/$120/$200, hours Sun + Mon 9am-8pm, 2 yrs pro, learning since age 11. No reviews yet.
+- 2026-10-13: Only real facts on the site. Real info from user: name, phone (802) 373-9672, namastenirvanamassage@gmail.com, prices 60/90 min = $85/$120 (120 min dropped), hours Sun + Mon 9am-8pm, 2 yrs pro, learning since age 11. No reviews yet.
 - 2026-10-13: Membership dropped per user.
 - 2026-10-13: Supabase backend added. Email login = magic link (no passwords). Admin = `admins` table, not email match.
 - Client health data stays out of GitHub. It only lives in Supabase behind RLS.

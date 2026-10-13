@@ -41,3 +41,7 @@ end $$;
 
 create trigger booking_slot_check before insert on public.booking_requests
   for each row execute function public.check_booking_slot();
+
+-- 120 min option dropped: only 60 and 90 min sessions.
+alter table public.booking_requests drop constraint if exists booking_requests_duration_min_check;
+alter table public.booking_requests add constraint booking_requests_duration_min_check check (duration_min in (60, 90)) not valid;
