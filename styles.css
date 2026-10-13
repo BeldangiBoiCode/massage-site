@@ -225,3 +225,23 @@ label.check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
 label.check input { width: auto; accent-color: var(--pine); }
 .hint { color: var(--stone); font-size: .9rem; margin-top: -8px; }
 select:disabled { opacity: .7; }
+
+/* ------------------------------------------------------------------
+   RULE FOR EVERY NEW ELEMENT (for Claude, and anyone editing the look):
+   Anything that loads in after the page paints (data from Supabase, images,
+   lists, cards, tables, times) must show a skeleton placeholder first, then swap
+   to the real thing with no layout jump. Give the placeholder the same size as
+   the final content. Use the classes below instead of writing a new loader.
+     <div class="skeleton skeleton-line"></div>   one line of text
+     <div class="skeleton skeleton-block"></div>  card / image / table row
+     <span class="skeleton skeleton-pill"></span> button, tag or time slot
+   Remove the .skeleton class (or replace the node) once the data arrives.
+   ------------------------------------------------------------------ */
+.skeleton { position: relative; overflow: hidden; background: var(--sea-glass); border-radius: 10px; color: transparent; pointer-events: none; user-select: none; }
+.skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .55), transparent); animation: skeleton-shimmer 1.4s ease-in-out infinite; }
+.skeleton-line { height: 1em; width: 100%; margin: .45em 0; }
+.skeleton-line.short { width: 60%; }
+.skeleton-block { height: 120px; width: 100%; border-radius: var(--radius); }
+.skeleton-pill { display: inline-block; height: 40px; width: 110px; border-radius: 999px; }
+@keyframes skeleton-shimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .skeleton::after { animation: none; } }

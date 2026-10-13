@@ -1,0 +1,18 @@
+/* Extra styles for the added auth pages. Reuses the tokens and classes in styles.css; edits nothing there. */
+[hidden] { display: none !important; }
+
+.auth-tabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; background: var(--mist); padding: 5px; border-radius: 999px; }
+.auth-tabs button { border: 0; background: transparent; color: var(--pine); font: inherit; font-weight: 600; font-size: .95rem; padding: 10px 8px; border-radius: 999px; cursor: pointer; }
+.auth-tabs button.active { background: var(--pine); color: var(--linen); }
+
+.auth-links { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: .95rem; }
+.auth-links a { color: var(--pine); text-decoration: underline; text-underline-offset: 3px; }
+.auth-links a:hover { color: var(--eucalyptus); }
+
+.auth-note { color: var(--stone); font-size: .95rem; line-height: 1.5; }
+.auth-note.box { background: var(--mist); border-radius: 14px; padding: 14px 16px; }
+
+.auth-section { display: grid; gap: 14px; padding-top: 22px; border-top: 1.5px solid var(--sea-glass); }
+.auth-section:first-of-type { border-top: 0; padding-top: 0; }
+.auth-card h2 { font-size: 1.5rem; }
+.auth-card.wide { max-width: 560px; }

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invite a user | Namaste Nirvana Massage</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="auth-extra.css">
+</head>
+<body>
+<header class="site-header">
+  <nav class="wrap nav" aria-label="Main">
+    <a class="logo" href="./">Namaste Nirvana</a>
+    <div class="nav-actions">
+      <a class="btn small ghost" href="admin.html">Admin</a>
+      <button class="btn small ghost" id="sign-out" type="button">Sign out</button>
+    </div>
+  </nav>
+</header>
+
+<main class="wrap auth-page" id="page" hidden>
+  <div class="auth-card">
+    <h1>Invite someone</h1>
+    <p class="lead">They get an email with a link to set their own password. Only admins can send invites.</p>
+
+    <form id="invite" novalidate>
+      <label>Their name <span class="opt">(optional)</span><input name="full_name" autocomplete="off"></label>
+      <label>Email<input name="email" type="email" autocomplete="off" required></label>
+      <label class="check"><input type="checkbox" name="make_admin"> Make them an admin (sees all bookings and clients)</label>
+      <button class="btn" type="submit">Send invite</button>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="supabase-client.js"></script>
+<script src="auth.js"></script>
+<script>
+const form = document.getElementById('invite');
+const statusEl = document.getElementById('status');
+
+requireUser().then(async (user) => {
+  if (!user) return;
+  if (!(await isAdmin())) return location.replace('account.html');
+  document.getElementById('page').hidden = false;
+});
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const email = form.email.value.trim();
+  if (!validEmail(email)) return say(statusEl, 'Enter an email like name@example.com.', true);
+  busy(form.querySelector('button'), async () => {
+    const { data: s } = await sb.auth.getSession();
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/invite-user`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${s.session?.access_token}` },
+      body: JSON.stringify({
+        email, full_name: form.full_name.value, make_admin: form.make_admin.checked,
+        redirect_to: SITE_BASE + 'reset-password.html?invite=1',
+      }),
+    });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) return say(statusEl, out.error ?? 'That didn\'t go through.', true);
+    say(statusEl, `Invite sent to ${email}${out.admin ? ' as an admin' : ''}.`);
+    form.reset();
+  });
+});
+
+document.getElementById('sign-out').addEventListener('click', async () => { await sb.auth.signOut(); location.replace('./'); });
+</script>
+</body>
+</html>

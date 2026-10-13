@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in or create account | Namaste Nirvana Massage</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="auth-extra.css">
+</head>
+<body>
+<header class="site-header">
+  <nav class="wrap nav" aria-label="Main">
+    <a class="logo" href="./">Namaste Nirvana</a>
+    <a class="btn small ghost" href="./#book">Book</a>
+  </nav>
+</header>
+
+<main class="wrap auth-page">
+  <div class="auth-card">
+    <h1 id="title">Sign in</h1>
+    <p class="lead" id="lead">Save your details, see your visits and get reminders.</p>
+
+    <div class="oauth">
+      <button class="btn oauth-btn" data-provider="google" type="button">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.3a12 12 0 0 0 0 10.8z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1c.9-2.9 3.6-4.9 6.7-4.9z"/></svg>
+        Continue with Google
+      </button>
+      <button class="btn oauth-btn apple" data-provider="apple" type="button">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M16.4 12.7c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.8 1.2 1.8 2.6 3.1 2.5 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.6-1-2.6-4.2zM13.9 5.1c.7-.8 1.2-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z"/></svg>
+        Continue with Apple
+      </button>
+    </div>
+
+    <p class="divider"><span>or use your email</span></p>
+
+    <div class="auth-tabs" role="group" aria-label="How to use your email">
+      <button type="button" data-mode="signin" class="active">Password</button>
+      <button type="button" data-mode="signup">Create account</button>
+      <button type="button" data-mode="link">Email me a link</button>
+    </div>
+
+    <form id="auth-form" novalidate>
+      <label data-modes="signup">Full name<input name="full_name" autocomplete="name"></label>
+      <label>Email<input name="email" type="email" autocomplete="email" required></label>
+      <label data-modes="signin signup">Password<input name="password" type="password" autocomplete="current-password"></label>
+      <button class="btn" type="submit" id="submit">Sign in</button>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </form>
+
+    <p class="auth-links">
+      <a href="forgot-password.html">Forgot password?</a>
+      <a href="forgot-password.html#email">Forgot which email?</a>
+    </p>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="supabase-client.js"></script>
+<script src="auth.js"></script>
+<script>
+const form = document.getElementById('auth-form');
+const statusEl = document.getElementById('status');
+const submit = document.getElementById('submit');
+const redirectTo = SITE_BASE + 'account.html';
+const MODES = {
+  signin: { title: 'Sign in', lead: 'Save your details, see your visits and get reminders.', button: 'Sign in' },
+  signup: { title: 'Create your account', lead: 'It takes a minute. We\'ll email you to confirm.', button: 'Create account' },
+  link:   { title: 'Sign in with a link', lead: 'No password. We\'ll email you a one-tap sign-in link.', button: 'Email me a sign-in link' },
+};
+let mode = location.hash === '#signup' ? 'signup' : 'signin';
+
+function setMode(next) {
+  mode = next;
+  document.getElementById('title').textContent = MODES[mode].title;
+  document.getElementById('lead').textContent = MODES[mode].lead;
+  submit.textContent = MODES[mode].button;
+  document.querySelectorAll('.auth-tabs button').forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
+  form.querySelectorAll('[data-modes]').forEach((l) => { l.hidden = !l.dataset.modes.split(' ').includes(mode); });
+  form.password.autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
+  say(statusEl, '');
+}
+document.querySelectorAll('.auth-tabs button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
+setMode(mode);
+
+currentUser().then((u) => { if (u) location.replace('account.html'); });
+
+document.querySelectorAll('[data-provider]').forEach((b) =>
+  b.addEventListener('click', async () => {
+    const { error } = await sb.auth.signInWithOAuth({ provider: b.dataset.provider, options: { redirectTo } });
+    if (error) say(statusEl, error.message, true);
+  })
+);
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const email = form.email.value.trim();
+  const password = form.password.value;
+  if (!validEmail(email)) return say(statusEl, 'Enter an email like name@example.com.', true);
+
+  busy(submit, async () => {
+    if (mode === 'link') {
+      const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
+      return error ? say(statusEl, error.message, true) : say(statusEl, `Sent. Check ${email} and tap the link to sign in.`);
+    }
+    if (mode === 'signup') {
+      const problem = passwordProblem(password);
+      if (problem) return say(statusEl, problem, true);
+      const { data, error } = await sb.auth.signUp({
+        email, password,
+        options: { emailRedirectTo: redirectTo, data: { full_name: form.full_name.value.trim() || undefined } },
+      });
+      if (error) return say(statusEl, error.message, true);
+      // With email confirmation on, there's no session yet. With it off, they're already in.
+      if (data.session) return location.replace('account.html');
+      return say(statusEl, `Almost there. Check ${email} to confirm your account.`);
+    }
+    if (!password) return say(statusEl, 'Enter your password.', true);
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      return say(statusEl, error.message === 'Invalid login credentials'
+        ? 'That email and password don\'t match. Try "Forgot password?" below.' : error.message, true);
+    }
+    location.replace('account.html');
+  });
+});
+</script>
+</body>
+</html>

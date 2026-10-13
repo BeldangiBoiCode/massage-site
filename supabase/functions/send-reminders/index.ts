@@ -1,6 +1,6 @@
 // Sends a reminder for each scheduled appointment in the next 24 hours.
-// Called hourly by pg_cron. Deploy with verify_jwt = false; auth is CRON_SECRET.
-// Secrets: CRON_SECRET, RESEND_API_KEY (email). Optional SMS: TWILIO_SID, TWILIO_TOKEN, TWILIO_FROM.
+// Called hourly by pg_cron. Deploy with verify_jwt = false; auth is the cron_secret row in app_settings.
+// Secrets: RESEND_API_KEY (email). Optional SMS: TWILIO_SID, TWILIO_TOKEN, TWILIO_FROM.
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
 const env = (k: string) => Deno.env.get(k) ?? '';
@@ -33,7 +33,8 @@ async function sendSms(to: string, text: string) {
 }
 
 Deno.serve(async (req) => {
-  if (req.headers.get('Authorization') !== `Bearer ${env('CRON_SECRET')}`) {
+  const { data: tok } = await db.from('app_settings').select('value').eq('key', 'cron_secret').single();
+  if (!tok || req.headers.get('Authorization') !== `Bearer ${tok.value}`) {
     return new Response('Unauthorized', { status: 401 });
   }
 

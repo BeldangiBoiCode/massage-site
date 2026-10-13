@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Time off | Namaste Nirvana</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="auth-extra.css">
+</head>
+<body>
+<header class="site-header">
+  <nav class="wrap nav" aria-label="Admin">
+    <a class="logo" href="./">Namaste Nirvana</a>
+    <div class="nav-actions">
+      <a class="btn small ghost" href="admin.html">Studio</a>
+      <button class="btn small ghost" id="sign-out" type="button">Sign out</button>
+    </div>
+  </nav>
+</header>
+
+<main class="wrap auth-page" id="page" hidden>
+  <div class="auth-card wide">
+    <h1>Time off</h1>
+    <p class="lead">Block days or hours so nobody can book them. Set it any time ahead. It shows on the booking form right away.</p>
+
+    <form id="off" class="auth-section" novalidate>
+      <div class="row">
+        <label>From (day)<input name="start" type="date" required></label>
+        <label>To (day) <span class="opt">(leave empty for one day)</span><input name="end" type="date"></label>
+      </div>
+      <label class="check"><input type="checkbox" name="partial"> Only part of the day</label>
+      <div class="row" id="times" hidden>
+        <label>Starting at<input name="from_time" type="time" step="1800" value="09:00"></label>
+        <label>Back at<input name="to_time" type="time" step="1800" value="12:00"></label>
+      </div>
+      <label>Note <span class="opt">(only you see this)</span><input name="reason" maxlength="200" placeholder="Vacation, appointment..."></label>
+      <button class="btn" type="submit">Block these times</button>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </form>
+
+    <div class="auth-section">
+      <h2>Coming up</h2>
+      <ul class="list" id="list"></ul>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="supabase-client.js"></script>
+<script src="auth.js"></script>
+<script>
+const TZ = 'America/New_York';
+const form = document.getElementById('off');
+const statusEl = document.getElementById('status');
+const list = document.getElementById('list');
+
+// "2026-10-18" + "14:30" in shop time -> a real Date.
+function shopTime(dateStr, hhmm = '00:00') {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const [h, mi] = hhmm.split(':').map(Number);
+  const guess = Date.UTC(y, m - 1, d, h, mi);
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+    timeZone: TZ, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric',
+  }).formatToParts(new Date(guess)).map((x) => [x.type, x.value]));
+  return new Date(guess - (Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - guess));
+}
+const plusDay = (dateStr) => { const d = new Date(dateStr + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); };
+const show = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: TZ, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+async function load() {
+  const { data } = await sb.from('time_off').select('*').gte('ends_at', new Date().toISOString()).order('starts_at');
+  list.innerHTML = data?.length
+    ? data.map((t) => `<li><b>${esc(show(t.starts_at))}</b><span>to ${esc(show(t.ends_at))}${t.reason ? ' · ' + esc(t.reason) : ''}</span>
+        <button class="btn small ghost" data-del="${t.id}" type="button">Remove</button></li>`).join('')
+    : '<li class="empty">No time off planned.</li>';
+}
+
+requireUser().then(async (user) => {
+  if (!user) return;
+  if (!(await isAdmin())) return location.replace('account.html');
+  document.getElementById('page').hidden = false;
+  form.start.min = new Date().toISOString().slice(0, 10);
+  load();
+});
+
+form.partial.addEventListener('change', () => { document.getElementById('times').hidden = !form.partial.checked; });
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (!form.start.value) return say(statusEl, 'Pick the first day.', true);
+  const lastDay = form.end.value || form.start.value;
+  if (lastDay < form.start.value) return say(statusEl, 'The last day can\'t be before the first.', true);
+
+  let from, to;
+  if (form.partial.checked) {
+    from = shopTime(form.start.value, form.from_time.value);
+    to = shopTime(lastDay, form.to_time.value);
+  } else {
+    from = shopTime(form.start.value);       // midnight at the start of the first day
+    to = shopTime(plusDay(lastDay));         // midnight after the last day
+  }
+  if (to <= from) return say(statusEl, 'The end has to be after the start.', true);
+
+  busy(form.querySelector('button[type=submit]'), async () => {
+    const { error } = await sb.from('time_off').insert({
+      starts_at: from.toISOString(), ends_at: to.toISOString(), reason: form.reason.value.trim() || null,
+    });
+    if (error) return say(statusEl, error.message, true);
+    // Existing bookings are not cancelled automatically. Warn so he can contact them.
+    const { count } = await sb.from('appointments').select('id', { count: 'exact', head: true })
+      .eq('status', 'scheduled').lt('starts_at', to.toISOString()).gte('starts_at', from.toISOString());
+    say(statusEl, count
+      ? `Blocked. Heads up: ${count} existing appointment${count > 1 ? 's' : ''} fall in that time. Those stay booked until you cancel them in Studio.`
+      : 'Blocked. Nobody can book those times now.');
+    form.reset();
+    document.getElementById('times').hidden = true;
+    load();
+  });
+});
+
+list.addEventListener('click', async (e) => {
+  const id = e.target.dataset.del;
+  if (!id) return;
+  await sb.from('time_off').delete().eq('id', id);
+  load();
+});
+
+document.getElementById('sign-out').addEventListener('click', async () => { await sb.auth.signOut(); location.replace('./'); });
+</script>
+</body>
+</html>

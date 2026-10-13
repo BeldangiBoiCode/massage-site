@@ -1,4 +1,4 @@
-// Booking form: saves to Supabase `booking_requests`. Signed-in users get it linked to their profile.
+// Booking form: sends to the `submit-booking` edge function. Signed-in users get it linked to their profile.
 const form = document.getElementById('booking');
 const status = document.getElementById('status');
 const button = form.querySelector('button');
@@ -17,6 +17,10 @@ const label = (m) => {
 };
 
 form.date.min = localDate(new Date());
+
+// Hidden spam trap (people never see or fill it; bots do). Added here so index.html stays untouched.
+form.insertAdjacentHTML('beforeend',
+  '<input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">');
 
 function setTimeOptions(options, enabled) {
   form.time.innerHTML = options.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
@@ -48,7 +52,8 @@ async function loadSlots() {
     if (s <= earliest) continue;
     const clash = busy.some((b) => {
       const bs = toMin(b.start_time);
-      return s < bs + b.duration_min + BREAK && bs < s + dur + BREAK;
+      const gap = b.buffer_min ?? BREAK; // 20 min after sessions; 0 for time off and calendar events
+      return s < bs + b.duration_min + gap && bs < s + dur + gap;
     });
     if (!clash) open.push([toTime(s), `${label(s)} to ${label(s + dur)}`]);
   }
@@ -82,31 +87,40 @@ form.addEventListener('submit', async (e) => {
   button.disabled = true;
   const user = await currentUser();
   const addons = [...form.querySelectorAll('input[name=addon]:checked')].map((c) => c.value);
-  const notes = [addons.length ? `Add-ons: ${addons.join(', ')}` : '', form.notes.value.trim()].filter(Boolean).join('\n');
   const when = `${new Date(`${form.date.value}T12:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })} at ${label(toMin(form.time.value))}`;
-  const { error } = await sb.from('booking_requests').insert({
-    user_id: user?.id ?? null,
-    name: form.name.value.trim(),
-    phone: form.phone.value.trim(),
-    email: form.email.value.trim() || null,
-    service: form.service.value,
-    duration_min: Number(form.duration.value),
-    preferred_date: form.date.value,
-    preferred_time: form.time.value,
-    notes: notes || null,
-  });
+
+  // Goes through the submit-booking edge function: input check, spam/rate limit, then auto-confirm.
+  let res, out = {};
+  try {
+    const { data: s } = await sb.auth.getSession();
+    res = await fetch(`${SUPABASE_URL}/functions/v1/submit-booking`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${s.session?.access_token ?? SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        name: form.name.value, phone: form.phone.value, email: form.email.value,
+        service: form.service.value, duration: Number(form.duration.value),
+        date: form.date.value, time: form.time.value, addons, notes: form.notes.value,
+        website: form.website.value, // hidden spam trap, added below
+      }),
+    });
+    out = await res.json().catch(() => ({}));
+  } catch { /* network down: handled below */ }
   button.disabled = false;
-  if (error) {
+
+  if (!res || !res.ok) {
     status.className = 'status error';
-    // Slot rules from check_booking_slot() come back as readable messages.
-    status.textContent = /taken|Sunday|9am|Pick a/.test(error.message)
-      ? error.message
-      : 'That didn\'t go through. Call or text (802) 373-9672 and we\'ll book you by phone.';
+    status.textContent = out.message ?? out.error ?? 'That didn\'t go through. Call or text (802) 373-9672 and we\'ll book you by phone.';
     loadSlots();
     return;
   }
   status.className = 'status';
-  status.textContent = `Requested for ${when}. We'll text ${form.phone.value} to confirm.`;
+  status.textContent = out.status === 'confirmed'
+    ? `You're booked for ${when}.${form.email.value ? ' A confirmation is on its way.' : ''}`
+    : `Requested for ${when}. We'll text ${form.phone.value} to confirm.`;
   form.reset();
   loadSlots();
 });
