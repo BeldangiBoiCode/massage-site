@@ -40,8 +40,6 @@ section { padding: 104px 0; }
 .btn.small { padding: 10px 20px; }
 .btn.ghost { background: transparent; color: var(--pine); box-shadow: inset 0 0 0 1.5px var(--pine); }
 .btn.ghost:hover { background: var(--pine); color: var(--linen); }
-.btn.light { background: var(--linen); color: var(--pine); }
-.btn.light:hover { background: var(--sea-glass); }
 
 /* Header */
 .site-header { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--mist) 88%, transparent); backdrop-filter: blur(10px); }
@@ -90,19 +88,6 @@ section { padding: 104px 0; }
 .prices li { background: var(--mist); border-radius: 999px; padding: 6px 14px; font-size: .94rem; }
 .prices b { font-weight: 600; }
 @media (max-width: 760px) { .services { grid-template-columns: 1fr; } }
-
-/* Membership band */
-.band { background: var(--pine); color: var(--linen); border-radius: 36px; margin: 0 12px; }
-.band h2 { color: var(--linen); }
-.band .lead { color: var(--sea-glass); margin: 20px 0 32px; }
-.member { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
-.plan { background: color-mix(in srgb, var(--linen) 8%, transparent); border: 1px solid color-mix(in srgb, var(--sea-glass) 30%, transparent); border-radius: var(--radius); padding: 36px; }
-.plan-price { color: var(--sea-glass); }
-.plan-price span { font-family: "Instrument Serif", serif; font-size: 4rem; color: var(--linen); line-height: 1; margin-right: 6px; }
-.checks { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 14px; }
-.checks li { padding-left: 30px; position: relative; }
-.checks li::before { content: ""; position: absolute; left: 0; top: .45em; width: 14px; height: 8px; border-left: 2px solid var(--sea-glass); border-bottom: 2px solid var(--sea-glass); transform: rotate(-45deg); }
-@media (max-width: 860px) { .member { grid-template-columns: 1fr; } }
 
 /* First visit steps */
 .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; list-style: none; padding: 0; margin: 0; counter-reset: step; }
@@ -163,3 +148,11 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--e
   .reveal { opacity: 1; transform: none; }
   html { scroll-behavior: auto; }
 }
+
+/* One price menu for all massages */
+.price-menu { list-style: none; margin: 0 0 28px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.price-menu li { background: var(--pine); color: var(--linen); border-radius: var(--radius); padding: 22px 26px; display: flex; justify-content: space-between; align-items: baseline; }
+.price-menu b { font-weight: 500; color: var(--sea-glass); }
+.price-menu span { font-family: "Instrument Serif", serif; font-size: 2.4rem; line-height: 1; }
+@media (max-width: 620px) { .price-menu { grid-template-columns: 1fr; } }
+.visit-info dd a { overflow-wrap: anywhere; }

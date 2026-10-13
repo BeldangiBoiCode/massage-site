@@ -1,4 +1,4 @@
-# Stillwater Massage (Nikesh Pokhrel, South Burlington VT)
+# Namaste Nirvana Massage (Nikesh Pokhrel, South Burlington VT)
 Static massage therapy site on GitHub Pages. Plain HTML + CSS + vanilla JS, Google Fonts (Instrument Serif, Figtree). No build step.
 Repo: BeldangiBoiCode/massage-site. Live: https://beldangiboicode.github.io/massage-site/
 
@@ -12,7 +12,7 @@ flowchart LR
 ```
 
 ## Key files
-- `index.html` → page markup: header, hero + facts strip, services/prices, membership band, first visit steps, about Nikesh, booking form + address, footer, mobile book button.
+- `index.html` → page markup: header, hero + facts strip, services/prices, price menu (one price for all types), first visit steps, about Nikesh, booking form + address, footer, mobile book button.
 - `styles.css` → all styles. Tokens in `:root` (pine, eucalyptus, mist, sea-glass, linen, stone). Sections in page order.
 - `app.js` → booking form validation + confirmation message. Client side only, saves nothing yet.
 - `.claude/DIAGRAM.md` → this file.
@@ -38,6 +38,6 @@ Supabase project not created yet. Planned tables (RLS on all):
 ## Gotchas / decisions
 - 2026-10-13: Design follows the `web-design` skill. Pine/eucalyptus/mist palette avoids the cream + terracotta spa default.
 - 2026-10-13: Auto-push to GitHub `main` after each change, no asking (user said so). Keep replies short and simple.
-- 2026-10-13: Only real facts on the site. Nothing about Nikesh was found online, so no credentials, years in practice, phone or reviews until the user gives them. Prices and the $79 membership are placeholders the user must confirm.
-- 2026-10-13: Membership section is modeled on Massage Envy (monthly session, member rate, rollover).
+- 2026-10-13: Only real facts on the site. Real info from user: name, phone (802) 373-9672, namastenirvanamassage@gmail.com, prices 60/90/120 min = $85/$120/$200, hours Sun + Mon 9am-8pm, 2 yrs pro, learning since age 11. No reviews yet.
+- 2026-10-13: Membership dropped per user.
 - Client health data stays out of GitHub. It only lives in Supabase behind RLS.
