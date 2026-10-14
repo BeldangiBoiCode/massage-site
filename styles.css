@@ -432,3 +432,7 @@ body::after { right: 0; transform: scaleX(-1); animation-delay: -13s; }
 
 /* Header spans the full width: links hug the left edge, Book hugs the right */
 .site-header .nav { max-width: none; padding: 0 clamp(20px, 3vw, 48px); }
+
+/* Solid header once scrolled */
+.site-header { transition: background .25s ease, box-shadow .25s ease, backdrop-filter .25s ease; }
+.site-header.scrolled { background: #FBF4F7; backdrop-filter: none; box-shadow: 0 6px 20px rgb(30 59 53 / .08); }

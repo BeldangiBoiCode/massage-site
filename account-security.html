@@ -100,5 +100,6 @@ pwForm.addEventListener('submit', (e) => {
 document.getElementById('sign-out').addEventListener('click', async () => { await sb.auth.signOut(); location.replace('./'); });
 document.getElementById('sign-out-all').addEventListener('click', async () => { await sb.auth.signOut({ scope: 'global' }); location.replace('./'); });
 </script>
+<script src="header.js" defer></script>
 </body>
 </html>
