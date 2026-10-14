@@ -429,3 +429,6 @@ body::after { right: 0; transform: scaleX(-1); animation-delay: -13s; }
   to   { background-position: 30% 14%, 74% 34%, bottom left; }
 }
 @media (max-width: 1100px) { body::before, body::after { opacity: .45; } }
+
+/* Header spans the full width: links hug the left edge, Book hugs the right */
+.site-header .nav { max-width: none; padding: 0 clamp(20px, 3vw, 48px); }
