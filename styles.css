@@ -398,3 +398,16 @@ label.check { min-height: 44px; }
   .will-reveal { opacity: 1; transform: none; }
   .done-check circle, .done-check path { stroke-dashoffset: 0; }
 }
+
+/* Light red + sky blue page background */
+:root { --blush: #FBE1E4; --sky: #E3F1FB; }
+body { background: linear-gradient(140deg, var(--blush) 0%, #F1E7F2 45%, var(--sky) 100%) fixed; min-height: 100vh; }
+.site-header { background: color-mix(in srgb, #fff 45%, transparent); }
+
+/* Centered bold brand in the header */
+.nav { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "left logo right"; }
+.nav .logo { grid-area: logo; justify-self: center; font-family: "Figtree", sans-serif; font-weight: 700; font-size: 1.55rem; letter-spacing: -.01em; }
+.nav ul { grid-area: left; justify-self: start; }
+.nav > .btn, .nav > .nav-actions { grid-area: right; justify-self: end; }
+@media (max-width: 1040px) { .nav ul { display: none; } }
+@media (max-width: 480px) { .nav .logo { font-size: 1.25rem; } .nav-actions .btn { padding: 8px 12px; } }
