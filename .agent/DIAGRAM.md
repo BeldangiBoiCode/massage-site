@@ -13,6 +13,14 @@ flowchart LR
   Fn --> Resend[Resend email] & Twilio[Twilio SMS, optional]
 ```
 
+## Backend (current, 2026-10-13)
+Supabase project "BeldangiBoiCode's Project", ref `aryarbjftnhyayhdlapw` (`supabase-client.js` points at it). Austin owns the backend:
+bookings go browser -> edge fn `submit-booking` (validation + IP/phone rate limit) -> `process-bookings` (cron every minute as backup)
+-> `appointments` (or declined). Public availability = `busy_slots(d date)` (no names). Time off = `time_off` (admin page `admin-timeoff.html`).
+Nikesh's calendar: `calendar-sync` pulls ICS busy times into `external_busy`; `calendar-feed` publishes appointments. Tokens live in `app_settings` (no dashboard secrets).
+Auth pages: `auth.html`, `forgot-password.html`, `reset-password.html`, `account-security.html`, `admin-invite.html` (+ `auth.js`, `auth-extra.css`).
+The booking form no longer inserts into `booking_requests` directly (RLS blocks it). Do not edit `supabase/` or the data logic in `app.js` when restyling.
+
 ## Key files
 - `index.html` → homepage. Booking form has email + length fields. Header "Sign in" link (`#account-link`) swaps to "My account".
 - `styles.css` → all styles. Tokens in `:root`. Sections: site, then Sign in, Account, Admin at the end.
