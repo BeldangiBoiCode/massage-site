@@ -22,6 +22,10 @@ Auth pages: `auth.html`, `forgot-password.html`, `reset-password.html`, `account
 Roles: the owner (in `admins`) only uses `admin.html` (phone-first cards: schedule, customers + payments + discounts, reviews, breaks); customers only use `account.html`. Each page redirects the other role away.
 Reviews: `review.html` -> edge fn `submit-review` (validation, link/spam block, IP limit) -> `reviews` table (pending until approved on the admin page) -> public sees approved via `public_reviews()`.
 Payments (`payments`) and discount codes (`discounts`) are admin-only; discounts are sent through the phone's text/email apps (no sending service needed).
+CRM + chat: `admin.html` tabs = Schedule, Clients (profiles, private notes via `customer_notes`, payments, discounts), Chat (table `messages`, realtime, shared `chat.js`/`chat.css`),
+Money (appointments made, revenue by month, owed, by massage, CSV export), Reviews, Breaks. Customers chat from `account.html`. RLS: a customer only reads/writes their own `messages`
+thread (cannot post as admin or edit admin messages; 30 msgs/hour trigger); admins are in `admins`. Guests without an account are reached by call/text/email.
+Opening days/hours come from the `opening_hours` table (the calendar draws only open weekdays); home page reviews strip = `reviews-strip.js` (`review_stats()`, `public_reviews()`).
 The booking form no longer inserts into `booking_requests` directly (RLS blocks it). Do not edit `supabase/` or the data logic in `app.js` when restyling.
 
 ## Key files

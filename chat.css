@@ -1,0 +1,29 @@
+/* Chat thread (customer account page + admin Chat tab). Uses the tokens in styles.css. */
+.chat { display: grid; gap: 10px; }
+.chat-log { background: var(--mist); border-radius: 18px; padding: 14px; height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; overscroll-behavior: contain; scroll-behavior: smooth; }
+.chat-skel { height: 100%; border-radius: 12px; }
+.chat-empty { margin: auto; text-align: center; color: var(--stone); max-width: 28ch; }
+.chat-day { align-self: center; font-size: .78rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--stone); margin: 10px 0 4px; }
+.msg { max-width: 82%; display: grid; gap: 2px; }
+.msg p { margin: 0; padding: 10px 14px; border-radius: 18px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg span { font-size: .72rem; color: var(--stone); padding: 0 6px; }
+.msg.mine { align-self: flex-end; }
+.msg.mine p { background: var(--pine); color: var(--linen); border-bottom-right-radius: 6px; }
+.msg.mine span { text-align: right; }
+.msg.theirs { align-self: flex-start; }
+.msg.theirs p { background: var(--linen); border-bottom-left-radius: 6px; box-shadow: 0 1px 2px rgb(30 59 53 / .08); }
+.chat-form { display: flex; gap: 8px; align-items: flex-end; }
+.chat-form textarea { min-height: 48px; max-height: 140px; resize: none; border-radius: 24px; padding: 12px 18px; flex: 1; background: var(--linen); box-shadow: 0 0 0 1px rgb(30 59 53 / .08); }
+.chat-form .btn { min-height: 48px; padding: 0 22px; }
+.chat-err { color: #9B3B32; font-weight: 600; font-size: .92rem; margin: 0; }
+
+/* Admin: the open conversation slides up as a full-screen sheet on phones */
+.chat-sheet { position: fixed; inset: 0; z-index: 50; background: var(--mist); display: grid; grid-template-rows: auto 1fr; animation: rise .3s ease both; }
+.chat-sheet-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px calc(10px) 14px; padding-top: calc(12px + env(safe-area-inset-top)); background: var(--linen); box-shadow: 0 1px 0 rgb(30 59 53 / .08); flex-wrap: wrap; }
+.chat-sheet-head h3 { font-size: 1.5rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-sheet-head .acts { width: 100%; }
+.chat-sheet .chat { grid-template-rows: 1fr auto auto; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); min-height: 0; height: 100%; }
+.chat-sheet .chat-log { height: auto; min-height: 0; background: transparent; padding: 4px; }
+@media (min-width: 761px) {
+  .chat-sheet { inset: 5vh 24px 5vh auto; width: min(520px, 46vw); border-radius: 24px; box-shadow: 0 30px 80px -20px rgb(0 0 0 / .45); overflow: hidden; }
+}

@@ -296,7 +296,30 @@ label.check { min-height: 44px; }
 .cal-nav { width: 42px; height: 42px; border-radius: 50%; border: 0; background: transparent; color: var(--pine); font-size: 1.5rem; line-height: 1; cursor: pointer; transition: background .2s ease; }
 .cal-nav:hover:not(:disabled) { background: var(--sea-glass); }
 .cal-nav:disabled { opacity: .25; cursor: default; }
-.cal-week, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-week, .cal-grid { display: grid; grid-template-columns: repeat(var(--cols, 7), 1fr); gap: 4px; }
+.cal.few .cal-grid { gap: 8px; }
+.cal.few .cal-week { gap: 8px; }
+.cal.few .cal-week span { font-size: .85rem; letter-spacing: .04em; text-transform: uppercase; }
+.cal.few .day { aspect-ratio: auto; min-height: 62px; font-size: 1.2rem; border-radius: 14px; }
+.cal-skel { height: 330px; border-radius: 16px; }
+
+/* Reviews strip (top of the home page) */
+.reviews-strip { padding: 0 0 72px; }
+.rv-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+.rv-head h2 { font-size: clamp(1.8rem, 4vw, 2.4rem); }
+.rv-sum { color: var(--stone); margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rv-sum .gold { color: #C9A24B; letter-spacing: 2px; font-size: 1.1rem; }
+.rv-track { list-style: none; margin: 0; padding: 4px 2px 18px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(280px, 31%); gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.rv-track::-webkit-scrollbar { display: none; }
+.rv-card { scroll-snap-align: start; background: var(--linen); border-radius: 18px; padding: 24px; display: grid; gap: 10px; align-content: start; box-shadow: 0 0 0 1px rgb(30 59 53 / .05), 0 14px 30px -18px rgb(30 59 53 / .22); }
+.rv-card .gold { color: #C9A24B; letter-spacing: 2px; }
+.rv-card .gold i { font-style: normal; opacity: .25; }
+.rv-card p { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+.rv-card small { color: var(--stone); }
+.rv-skel { height: 170px; border-radius: 18px; }
+.rv-empty { background: var(--linen); border-radius: 18px; padding: 22px 26px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; color: var(--stone); }
+@media (max-width: 860px) { .rv-track { grid-auto-columns: 82%; margin: 0 -20px; padding-left: 20px; padding-right: 20px; scroll-padding-left: 20px; } }
+@media (max-width: 760px) { .reviews-strip { padding-bottom: 48px; } }
 .cal-week span { text-align: center; font-size: .78rem; font-weight: 600; letter-spacing: .06em; color: var(--stone); padding: 6px 0; }
 .day { aspect-ratio: 1; min-height: 40px; display: grid; place-items: center; position: relative; border: 0; border-radius: 12px; background: var(--linen); color: var(--pine); font: 600 .98rem "Figtree", sans-serif; cursor: pointer; transition: background .2s ease, color .2s ease, transform .2s ease; }
 .day.blank { background: none; }

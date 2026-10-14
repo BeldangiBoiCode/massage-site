@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="admin.css">
+<link rel="stylesheet" href="chat.css">
 </head>
 <body>
 <header class="site-header">
@@ -34,13 +35,17 @@
 
   <nav class="adm-tabs" role="tablist" aria-label="Sections">
     <button type="button" role="tab" data-act="tab" data-tab="schedule" class="on">Schedule</button>
-    <button type="button" role="tab" data-act="tab" data-tab="customers">Customers</button>
+    <button type="button" role="tab" data-act="tab" data-tab="customers">Clients</button>
+    <button type="button" role="tab" data-act="tab" data-tab="chat">Chat</button>
+    <button type="button" role="tab" data-act="tab" data-tab="money">Money</button>
     <button type="button" role="tab" data-act="tab" data-tab="reviews">Reviews</button>
     <button type="button" role="tab" data-act="tab" data-tab="breaks">Breaks</button>
   </nav>
 
   <section id="p-schedule" role="tabpanel"><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></section>
   <section id="p-customers" role="tabpanel" hidden><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></section>
+  <section id="p-chat" role="tabpanel" hidden><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></section>
+  <section id="p-money" role="tabpanel" hidden><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></section>
   <section id="p-reviews" role="tabpanel" hidden><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></section>
   <section id="p-breaks" role="tabpanel" hidden><div class="skeleton sk-card"></div></section>
 </main>
@@ -53,10 +58,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="supabase-client.js"></script>
+<script src="chat.js"></script>
 <script>
 const TZ = 'America/New_York';
 const PRICES = { 60: 85, 90: 120 };
-const S = { appts: [], pay: [], reqs: [], profiles: [], off: [], reviews: [], disc: [], tab: 'schedule', when: 'upcoming', q: '', open: new Set() };
+const S = { appts: [], pay: [], reqs: [], profiles: [], off: [], reviews: [], disc: [], msgs: [], notes: {}, tab: 'schedule', when: 'upcoming', q: '', open: new Set() };
 const $ = (s) => document.querySelector(s);
 
 /* ---------- helpers ---------- */
@@ -100,7 +106,7 @@ const isUpcoming = (a) => a.status === 'scheduled' && new Date(a.starts_at).getT
 /* ---------- loading ---------- */
 async function load() {
   const nowIso = new Date().toISOString();
-  const [appt, pay, req, prof, off, rev, disc] = await Promise.all([
+  const [appt, pay, req, prof, off, rev, disc, msg, notes] = await Promise.all([
     sb.from('appointments').select('*').order('starts_at', { ascending: false }).limit(1000),
     sb.from('payments').select('*').order('paid_at', { ascending: false }).limit(3000),
     sb.from('booking_requests').select('*').eq('status', 'new').order('created_at'),
@@ -108,9 +114,12 @@ async function load() {
     sb.from('time_off').select('*').gte('ends_at', nowIso).order('starts_at'),
     sb.from('reviews').select('*').order('created_at', { ascending: false }).limit(300),
     sb.from('discounts').select('*').order('created_at', { ascending: false }).limit(200),
+    sb.from('messages').select('*').order('created_at', { ascending: false }).limit(2000),
+    sb.from('customer_notes').select('*'),
   ]);
   S.appts = appt.data ?? []; S.pay = pay.data ?? []; S.reqs = req.data ?? []; S.profiles = prof.data ?? [];
   S.off = off.data ?? []; S.reviews = rev.data ?? []; S.disc = disc.data ?? [];
+  S.msgs = msg.data ?? []; S.notes = Object.fromEntries((notes.data ?? []).map((n) => [n.customer_key, n.note]));
   render();
 }
 
@@ -218,6 +227,7 @@ function buildCustomers() {
 }
 
 function customerCard(c, pm) {
+  const unread = c.profile ? unreadFor(c.key) : 0;
   const live = c.appts.filter((a) => a.status !== 'cancelled' && a.status !== 'no_show');
   const paid = live.reduce((n, a) => n + (pm[a.id] ?? 0), 0);
   const owed = c.appts.filter((a) => a.status === 'done' || (a.status === 'scheduled' && new Date(a.starts_at) < new Date()))
@@ -238,11 +248,19 @@ function customerCard(c, pm) {
     <div class="acts">
       ${c.phone ? `<a class="act main" href="${attr(callHref(c.phone))}">Call</a><a class="act" href="${attr(smsHref(c.phone, hi))}">Text</a>` : ''}
       ${c.email ? `<a class="act" href="${attr(mailHref(c.email, 'From Namaste Nirvana', hi))}">Email</a>` : ''}
+      ${c.profile ? `<button class="act" type="button" data-act="chat" data-id="${attr(c.key)}">Chat${unread ? ` (${unread})` : ''}</button>` : ''}
     </div>
-    <details class="more" data-key="${key}" ${S.open.has(key) ? 'open' : ''}><summary>Visits, notes and discounts</summary>
+    <details class="more" data-key="${key}" ${S.open.has(key) ? 'open' : ''}><summary>Profile, visits, notes and discounts</summary>
       <div class="more-body">
         ${c.profile?.health_notes ? `<div><h4>Health notes (private)</h4><div class="note-box">${esc(c.profile.health_notes)}</div></div>` : ''}
         ${c.profile?.pressure_pref ? `<div><h4>Pressure</h4><p>${esc(c.profile.pressure_pref)}</p></div>` : ''}
+        <div><h4>Contact</h4><p>${c.phone ? esc(c.phone) : 'No phone'} · ${c.email ? esc(c.email) : 'No email'}${c.profile?.birthday ? ' · birthday ' + esc(c.profile.birthday) : ''}</p>
+          ${c.profile ? '' : '<p class="c-sub">Booked as a guest, so there is no in-app chat. Call, text or email.</p>'}</div>
+        <div><h4>Private notes</h4>
+          <form class="note-form" data-note="${attr(c.key)}">
+            <textarea name="note" maxlength="4000" placeholder="Preferences, injuries, anything to remember">${esc(S.notes[c.key] ?? '')}</textarea>
+            <button class="act" type="submit">Save note</button>
+          </form></div>
         <div><h4>Visits</h4>${visits || '<p class="c-sub">No visits yet.</p>'}</div>
         <div><h4>Send a discount</h4>
           <form class="mini-form" data-disc data-name="${attr(c.name)}" data-phone="${attr(c.phone)}" data-email="${attr(c.email)}">
@@ -310,6 +328,149 @@ function renderBreaks() {
       : '<div class="empty-card">No time off planned. Add one and those times disappear from the booking calendar right away.</div>');
 }
 
+
+/* ---------- chat ---------- */
+const unreadFor = (id) => S.msgs.filter((m) => m.customer_id === id && m.sender === 'customer' && !m.read_at).length;
+let sheet = null;
+
+function renderChat() {
+  const byCust = new Map();
+  for (const m of S.msgs) { // S.msgs is newest first
+    if (!byCust.has(m.customer_id)) byCust.set(m.customer_id, { id: m.customer_id, last: m, unread: 0 });
+    if (m.sender === 'customer' && !m.read_at) byCust.get(m.customer_id).unread++;
+  }
+  const people = buildCustomers();
+  const rows = [...byCust.values()].map((t) => ({ ...t, who: people.find((c) => c.key === t.id) }))
+    .sort((a, b) => b.last.created_at.localeCompare(a.last.created_at));
+  $('#p-chat').innerHTML = rows.length ? rows.map((t) => `<button type="button" class="a-card convo ${t.unread ? 'unread' : ''}" data-act="chat" data-id="${attr(t.id)}">
+      <h3 class="a-name">${esc(t.who?.name || 'Customer')}</h3>${t.unread ? `<span class="badge">${t.unread}</span>` : `<span class="c-sub">${esc(shortDay(t.last.created_at))}</span>`}
+      <p>${t.last.sender === 'admin' ? 'You: ' : ''}${esc(t.last.body)}</p></button>`).join('')
+    : '<div class="empty-card">No messages yet. Customers with an account can message you from their account page, and you can start a chat from any client card. Guests (no account) are reached by call, text or email.</div>';
+}
+
+function openChat(id) {
+  const c = buildCustomers().find((x) => x.key === id);
+  closeChat();
+  const hi = `Hi ${first(c?.name)}, `;
+  sheet = document.createElement('div');
+  sheet.className = 'chat-sheet';
+  sheet.innerHTML = `<div class="chat-sheet-head"><h3>${esc(c?.name || 'Customer')}</h3>
+      <button class="act" type="button" data-act="sheet-close">Close</button>
+      <div class="acts">
+        ${c?.phone ? `<a class="act main" href="${attr(callHref(c.phone))}">Call</a><a class="act" href="${attr(smsHref(c.phone, hi))}">Text</a>` : ''}
+        ${c?.email ? `<a class="act" href="${attr(mailHref(c.email, 'From Namaste Nirvana', hi))}">Email</a>` : ''}
+      </div></div><div id="sheet-chat"></div>`;
+  document.body.appendChild(sheet);
+  document.body.style.overflow = 'hidden';
+  const root = sheet.querySelector('#sheet-chat');
+  sheet.chat = mountChat(root, { customerId: id, me: 'admin', placeholder: `Message ${first(c?.name)}` });
+  root.addEventListener('chat:read', () => refreshMessages());
+}
+
+function closeChat() {
+  if (!sheet) return;
+  sheet.chat?.destroy();
+  sheet.remove(); sheet = null;
+  document.body.style.overflow = '';
+  refreshMessages();
+}
+
+async function refreshMessages() {
+  const { data } = await sb.from('messages').select('*').order('created_at', { ascending: false }).limit(2000);
+  S.msgs = data ?? S.msgs;
+  if (!sheet) render(); else renderTabsOnly();
+}
+function renderTabsOnly() {
+  const n = S.msgs.filter((m) => m.sender === 'customer' && !m.read_at).length;
+  const b = document.querySelector('.adm-tabs [data-tab="chat"]');
+  b.querySelector('.dot')?.remove();
+  if (n) b.insertAdjacentHTML('beforeend', `<span class="dot">${n}</span>`);
+}
+
+/* ---------- money + reports ---------- */
+function renderMoney() {
+  const pm = payMap();
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const d0 = new Date();
+  const ymOf = (iso) => dayKey(iso).slice(0, 7);
+  const thisYm = `${d0.getFullYear()}-${pad2(d0.getMonth() + 1)}`;
+  const prev = new Date(d0.getFullYear(), d0.getMonth() - 1, 1);
+  const lastYm = `${prev.getFullYear()}-${pad2(prev.getMonth() + 1)}`;
+  const sum = (arr) => arr.reduce((n, x) => n + Number(x.amount), 0);
+  const collected = sum(S.pay);
+  const monthPay = sum(S.pay.filter((p) => ymOf(p.paid_at) === thisYm));
+  const lastPay = sum(S.pay.filter((p) => ymOf(p.paid_at) === lastYm));
+  const yearPay = sum(S.pay.filter((p) => dayKey(p.paid_at).slice(0, 4) === String(d0.getFullYear())));
+  const live = S.appts.filter((a) => a.status !== 'cancelled' && a.status !== 'no_show');
+  const owed = S.appts.filter((a) => a.status === 'done' || (a.status === 'scheduled' && new Date(a.starts_at) < d0))
+    .reduce((n, a) => n + Math.max(Number(a.price ?? 0) - (pm[a.id] ?? 0), 0), 0);
+  const paidVisits = new Set(S.pay.map((p) => p.appointment_id)).size;
+  const cancelled = S.appts.filter((a) => a.status === 'cancelled').length;
+  const noShow = S.appts.filter((a) => a.status === 'no_show').length;
+  const madeThis = S.appts.filter((a) => ymOf(a.created_at) === thisYm).length;
+  const madeLast = S.appts.filter((a) => ymOf(a.created_at) === lastYm).length;
+  const people = buildCustomers().filter((c) => c.appts.length);
+  const repeat = people.filter((c) => c.appts.filter((a) => a.status !== 'cancelled' && a.status !== 'no_show').length >= 2).length;
+  const newThis = people.filter((c) => ymOf(c.appts.reduce((m, a) => (a.created_at < m ? a.created_at : m), c.appts[0].created_at)) === thisYm).length;
+
+  const months = Array.from({ length: 6 }, (_, i) => { const d = new Date(d0.getFullYear(), d0.getMonth() - (5 - i), 1); return { ym: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`, label: d.toLocaleDateString('en-US', { month: 'short' }) }; });
+  months.forEach((m) => { m.v = sum(S.pay.filter((p) => ymOf(p.paid_at) === m.ym)); });
+  const top = Math.max(...months.map((m) => m.v), 1);
+
+  const svc = {};
+  for (const a of live) { const k = a.service; svc[k] ??= { n: 0, rev: 0 }; svc[k].n++; svc[k].rev += pm[a.id] ?? 0; }
+  const nameOf = Object.fromEntries(S.appts.map((a) => [a.id, a.client_name]));
+  const kv = (rows) => `<dl class="kv">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
+
+  $('#p-money').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat"><b>${S.appts.length}</b><span>Appointments made</span></div>
+      <div class="stat"><b>${money(collected)}</b><span>Collected, all time</span></div>
+      <div class="stat"><b>${money(monthPay)}</b><span>Collected this month</span></div>
+      <div class="stat"><b>${money(owed)}</b><span>Still owed</span></div>
+    </div>
+    <article class="a-card"><h3 class="a-name">Last 6 months</h3>
+      <div class="bars">${months.map((m) => `<div class="bar"><b>${m.v ? money(m.v) : ''}</b><i style="height:${Math.max(3, (m.v / top) * 100)}%"></i><span>${m.label}</span></div>`).join('')}</div></article>
+    <article class="a-card"><h3 class="a-name">Appointments</h3>${kv([
+      ['Booked this month', madeThis], ['Booked last month', madeLast], ['Kept (done)', S.appts.filter((a) => a.status === 'done').length],
+      ['Coming up', S.appts.filter(isUpcoming).length], ['Cancelled', cancelled], ['No-shows', noShow],
+      ['Cancel + no-show rate', S.appts.length ? Math.round(((cancelled + noShow) / S.appts.length) * 100) + '%' : '0%']])}</article>
+    <article class="a-card"><h3 class="a-name">Revenue</h3>${kv([
+      ['This month', money(monthPay)], ['Last month', money(lastPay)], ['This year', money(yearPay)],
+      ['Average per paid visit', paidVisits ? money(Math.round((collected / paidVisits) * 100) / 100) : '$0']])}</article>
+    <article class="a-card"><h3 class="a-name">Clients</h3>${kv([
+      ['Total clients', people.length], ['New this month', newThis],
+      ['Came back (2+ visits)', people.length ? `${repeat} (${Math.round((repeat / people.length) * 100)}%)` : '0']])}</article>
+    <article class="a-card"><h3 class="a-name">By massage</h3>${Object.keys(svc).length
+      ? kv(Object.entries(svc).sort((a, b) => b[1].n - a[1].n).map(([k, v]) => [esc(k), `${v.n} · ${money(v.rev)}`])) : '<p class="c-sub">Nothing yet.</p>'}</article>
+    <article class="a-card"><h3 class="a-name">Recent payments</h3>${S.pay.length
+      ? kv(S.pay.slice(0, 12).map((p) => [`${esc(nameOf[p.appointment_id] ?? 'Client')} <span class="c-sub">${esc(shortDay(p.paid_at))} · ${esc(p.method)}</span>`, money(p.amount)])) : '<p class="c-sub">No payments recorded yet. Open an appointment, tap More, and record a payment.</p>'}</article>
+    <article class="a-card"><h3 class="a-name">Export</h3><p class="c-sub">Spreadsheet files you can open in Excel or Google Sheets.</p>
+      <div class="acts"><button class="act" type="button" data-act="csv" data-what="customers">Clients</button><button class="act" type="button" data-act="csv" data-what="appointments">Appointments</button><button class="act" type="button" data-act="csv" data-what="payments">Payments</button></div></article>`;
+}
+
+function downloadCsv(name, rows) {
+  const cell = (v) => { let t = String(v ?? ''); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };
+  const url = URL.createObjectURL(new Blob(['﻿' + rows.map((r) => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: `namaste-nirvana-${name}-${dayKey(new Date().toISOString())}.csv` });
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function exportCsv(what) {
+  const pm = payMap();
+  if (what === 'customers') {
+    downloadCsv(what, [['Name', 'Phone', 'Email', 'Visits', 'Paid', 'Last visit', 'Has account']].concat(buildCustomers().map((c) =>
+      [c.name, c.phone, c.email, c.appts.filter((a) => a.status !== 'cancelled' && a.status !== 'no_show').length,
+       c.appts.reduce((n, a) => n + (pm[a.id] ?? 0), 0), c.last ? dayKey(c.last) : '', c.profile ? 'yes' : 'no'])));
+  } else if (what === 'appointments') {
+    downloadCsv(what, [['Date', 'Time', 'Name', 'Phone', 'Email', 'Massage', 'Minutes', 'Add-ons', 'Price', 'Paid', 'Status']].concat(S.appts.map((a) =>
+      [dayKey(a.starts_at), clock(a.starts_at), a.client_name, a.client_phone, a.client_email, a.service, a.duration_min, (a.addons ?? []).join('; '), a.price, pm[a.id] ?? 0, a.status])));
+  } else {
+    const nameOf = Object.fromEntries(S.appts.map((a) => [a.id, a.client_name]));
+    downloadCsv(what, [['Date', 'Client', 'Amount', 'Method']].concat(S.pay.map((p) => [dayKey(p.paid_at), nameOf[p.appointment_id] ?? '', p.amount, p.method])));
+  }
+}
+
 /* ---------- render ---------- */
 function render() {
   const today = dayKey(new Date().toISOString()), ym = today.slice(0, 7);
@@ -320,15 +481,16 @@ function render() {
     .map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
 
   const pending = S.reviews.filter((r) => r.status === 'pending').length;
+  const unreadAll = S.msgs.filter((m) => m.sender === 'customer' && !m.read_at).length;
   document.querySelectorAll('.adm-tabs button').forEach((b) => {
     b.classList.toggle('on', b.dataset.tab === S.tab);
     b.setAttribute('aria-selected', b.dataset.tab === S.tab);
     b.querySelector('.dot')?.remove();
-    const n = b.dataset.tab === 'schedule' ? S.reqs.length : b.dataset.tab === 'reviews' ? pending : 0;
+    const n = b.dataset.tab === 'schedule' ? S.reqs.length : b.dataset.tab === 'reviews' ? pending : b.dataset.tab === 'chat' ? unreadAll : 0;
     if (n) b.insertAdjacentHTML('beforeend', `<span class="dot">${n}</span>`);
   });
-  for (const t of ['schedule', 'customers', 'reviews', 'breaks']) $(`#p-${t}`).hidden = t !== S.tab;
-  ({ schedule: renderSchedule, customers: renderCustomers, reviews: renderReviews, breaks: renderBreaks })[S.tab]();
+  for (const t of ['schedule', 'customers', 'chat', 'money', 'reviews', 'breaks']) $(`#p-${t}`).hidden = t !== S.tab;
+  ({ schedule: renderSchedule, customers: renderCustomers, chat: renderChat, money: renderMoney, reviews: renderReviews, breaks: renderBreaks })[S.tab]();
 }
 
 /* ---------- actions ---------- */
@@ -343,6 +505,9 @@ document.addEventListener('click', (e) => {
     if (act === 'tab') { S.tab = el.dataset.tab; render(); window.scrollTo({ top: 0 }); }
     else if (act === 'when') { S.when = el.dataset.when; renderSchedule(); }
     else if (act === 'toast-close') $('#toast').hidden = true;
+    else if (act === 'chat') openChat(id);
+    else if (act === 'sheet-close') closeChat();
+    else if (act === 'csv') exportCsv(el.dataset.what);
     else if (act === 'status') {
       const a = S.appts.find((x) => x.id == id);
       if (to === 'cancelled' && !confirm(`Cancel ${a.client_name}'s appointment on ${longDay(a.starts_at)}?`)) return;
@@ -390,6 +555,14 @@ document.addEventListener('submit', (e) => {
       must(await sb.from('payments').insert({ appointment_id: Number(f.dataset.pay), amount, method: f.method.value }));
       await load();
     });
+  } else if (f.dataset.note !== undefined) {
+    e.preventDefault();
+    guard(async () => {
+      const key = f.dataset.note, note = f.note.value.trim();
+      must(await sb.from('customer_notes').upsert({ customer_key: key, note, updated_at: new Date().toISOString() }));
+      S.notes[key] = note;
+      const b = f.querySelector('button'); b.textContent = 'Saved'; setTimeout(() => { b.textContent = 'Save note'; }, 1500);
+    });
   } else if (f.dataset.disc !== undefined) {
     e.preventDefault();
     guard(async () => {
@@ -424,6 +597,19 @@ document.addEventListener('toggle', (e) => {
   if (k) e.target.open ? S.open.add(k) : S.open.delete(k);
 }, true);
 
+// New customer messages arrive live: the Chat tab badge updates and a small prompt shows.
+function watchInbox() {
+  sb.channel('admin-inbox').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (p) => {
+    if (S.msgs.some((m) => m.id === p.new.id)) return;
+    S.msgs.unshift(p.new);
+    if (p.new.sender === 'customer' && !(sheet && sheet.querySelector('.chat'))) {
+      const who = buildCustomers().find((c) => c.key === p.new.customer_id)?.name || 'A customer';
+      toast(`<span><b>${esc(who)}</b>: ${esc(p.new.body.slice(0, 90))}</span><div class="toast-row"><button class="act" type="button" data-act="chat" data-id="${attr(p.new.customer_id)}">Open chat</button></div>`, 20000);
+    }
+    if (!sheet) render(); else renderTabsOnly();
+  }).subscribe();
+}
+
 document.getElementById('sign-out').addEventListener('click', async () => { await sb.auth.signOut(); location.replace('./'); });
 
 (async () => {
@@ -431,6 +617,7 @@ document.getElementById('sign-out').addEventListener('click', async () => { awai
   if (!(await isAdmin())) return location.replace('account.html');
   $('main.adm').hidden = false;
   load();
+  watchInbox();
 })();
 </script>
 </body>

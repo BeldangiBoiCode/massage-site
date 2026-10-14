@@ -7,9 +7,11 @@ const calEl = document.getElementById('cal');
 const slotsEl = document.getElementById('slots');
 const slotHint = document.getElementById('slot-hint');
 
-// Hours: Sun + Mon, 9am to 8pm, 20 min break between sessions. Mirrors slot_problem() in Supabase.
-const OPEN = 9 * 60, CLOSE = 20 * 60, BREAK = 20, STEP = 30; // starts on :00 or :30 only; break is hidden
-const OPEN_DAYS = [0, 1];
+// Hours come from the `opening_hours` table (so changing days or times is a database edit, no code change).
+// Defaults below are used only if that can't be loaded. 20 min break between sessions; starts on :00/:30.
+const BREAK = 20, STEP = 30;
+let HOURS = { 0: { open: 9 * 60, close: 20 * 60 }, 1: { open: 9 * 60, close: 20 * 60 } };
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MAX_DAYS_AHEAD = 60;
 const PRICES = { 60: 85, 90: 120 };
 const ADDON_PRICES = { 'Cupping': 15, 'TENS machine': 20 };
@@ -35,29 +37,38 @@ const lastBookable = new Date(today.getFullYear(), today.getMonth(), today.getDa
 let view = { y: today.getFullYear(), m: today.getMonth() };
 
 function renderCalendar() {
+  const cols = Object.keys(HOURS).map(Number).sort((a, b) => a - b);
   const first = new Date(view.y, view.m, 1);
-  const lead = first.getDay();
-  const count = new Date(view.y, view.m + 1, 0).getDate();
   const todayIso = localDate(today), lastIso = localDate(lastBookable);
   const atStart = view.y === today.getFullYear() && view.m === today.getMonth();
   const atEnd = new Date(view.y, view.m + 1, 1) > lastBookable;
+  const gridStart = new Date(view.y, view.m, 1 - first.getDay()); // the Sunday on or before the 1st
 
+  // Only the days we're open are drawn, so nothing looks "unavailable".
   let cells = '';
-  for (let i = 0; i < lead; i++) cells += '<span class="day blank"></span>';
-  for (let d = 1; d <= count; d++) {
-    const iso = `${view.y}-${pad(view.m + 1)}-${pad(d)}`;
-    const open = OPEN_DAYS.includes((lead + d - 1) % 7) && iso >= todayIso && iso <= lastIso;
-    const cls = ['day', iso === todayIso ? 'today' : '', iso === form.date.value ? 'selected' : ''].filter(Boolean).join(' ');
-    cells += `<button type="button" class="${cls}" data-date="${iso}" ${open ? '' : 'disabled'} aria-pressed="${iso === form.date.value}"
-      aria-label="${prettyDay(iso)}${open ? '' : ', closed'}">${d}</button>`;
+  for (let w = 0; w < 6; w++) {
+    let row = '', any = false;
+    for (const dow of cols) {
+      const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + w * 7 + dow);
+      if (d.getMonth() !== view.m) { row += '<span class="day blank"></span>'; continue; }
+      const iso = localDate(d);
+      const ok = iso >= todayIso && iso <= lastIso;
+      any = true;
+      const cls = ['day', iso === todayIso ? 'today' : '', iso === form.date.value ? 'selected' : ''].filter(Boolean).join(' ');
+      row += `<button type="button" class="${cls}" data-date="${iso}" ${ok ? '' : 'disabled'} aria-pressed="${iso === form.date.value}"
+        aria-label="${prettyDay(iso)}">${d.getDate()}</button>`;
+    }
+    if (any) cells += row;
   }
+  calEl.style.setProperty('--cols', cols.length);
+  calEl.classList.toggle('few', cols.length <= 3);
   calEl.innerHTML = `
     <div class="cal-head">
       <button type="button" class="cal-nav" data-nav="-1" aria-label="Previous month" ${atStart ? 'disabled' : ''}>‹</button>
       <b>${first.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</b>
       <button type="button" class="cal-nav" data-nav="1" aria-label="Next month" ${atEnd ? 'disabled' : ''}>›</button>
     </div>
-    <div class="cal-week" aria-hidden="true">${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((x) => `<span>${x}</span>`).join('')}</div>
+    <div class="cal-week" aria-hidden="true">${cols.map((c) => `<span>${DAY_NAMES[c].slice(0, cols.length <= 3 ? 9 : 3)}</span>`).join('')}</div>
     <div class="cal-grid">${cells}</div>`;
 }
 
@@ -82,14 +93,36 @@ function showSkeleton() {
   slotsEl.setAttribute('aria-busy', 'true');
 }
 
+function hintText() {
+  const hs = Object.values(HOURS);
+  return hs.every((h) => h.open === hs[0].open && h.close === hs[0].close)
+    ? `Sessions run ${label(hs[0].open)} to ${label(hs[0].close)}, with a short break between clients.`
+    : 'A short break is kept between clients.';
+}
+
+async function loadHours() {
+  try {
+    const { data, error } = await sb.from('opening_hours').select('*');
+    if (error || !data?.length) return;
+    const toM = (t) => toMin(t.slice(0, 5));
+    HOURS = Object.fromEntries(data.map((h) => [h.weekday, { open: toM(h.opens_at), close: toM(h.closes_at) }]));
+  } catch { /* keep the defaults */ }
+  const names = Object.keys(HOURS).map(Number).sort((a, b) => a - b).map((d) => DAY_NAMES[d] + 's');
+  document.getElementById('day-label').innerHTML =
+    `Day <span class="opt">(we're open ${names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names.slice(-1) : names[0]})</span>`;
+  slotHint.textContent = hintText();
+}
+
 let slotRequest = 0;
 async function loadSlots() {
   const day = form.date.value;
   const dur = Number(form.duration.value);
   form.time.value = '';
-  slotHint.textContent = 'Sessions run 9am to 8pm, with a short break between clients.';
+  slotHint.textContent = hintText();
   slotsEl.removeAttribute('aria-busy');
   if (!day) return showMessage('Pick a day to see open times.');
+  const hours = HOURS[new Date(`${day}T12:00`).getDay()];
+  if (!hours) return showMessage('We\'re not open that day. Pick another.');
   showSkeleton();
   const req = ++slotRequest;
 
@@ -104,7 +137,7 @@ async function loadSlots() {
   const now = new Date();
   const earliest = day === localDate(now) ? now.getHours() * 60 + now.getMinutes() + 120 : 0; // 2h notice
   const chips = [];
-  for (let s = OPEN; s + dur <= CLOSE; s += STEP) {
+  for (let s = hours.open; s + dur <= hours.close; s += STEP) {
     if (s <= earliest) continue;
     const clash = busy.some((b) => {
       const bs = toMin(b.start_time);
@@ -130,8 +163,10 @@ slotsEl.addEventListener('click', (e) => {
 form.duration.addEventListener('change', loadSlots);
 
 /* ---------- Prefill from the profile when signed in ---------- */
+let signedIn = false;
 currentUser().then(async (u) => {
   if (!u) return;
+  signedIn = true;
   const { data: p } = await sb.from('profiles').select('full_name, phone, email').eq('id', u.id).single();
   if (!p) return;
   if (!form.name.value) form.name.value = p.full_name ?? '';
@@ -186,6 +221,7 @@ function showDone(b, confirmed) {
       <div><dt>Total</dt><dd>$${total}, paid at the studio</dd></div>
       <div><dt>Where</dt><dd>23 Logwood St, South Burlington</dd></div>
     </dl>
+    ${signedIn ? '' : '<p class="c-sub">Want to message Nikesh or see your visits? <a href="auth.html#signup">Create a free account</a> with the same phone or email.</p>'}
     <div class="done-actions">
       ${confirmed ? `<a class="btn" href="${href}" download="namaste-nirvana-massage.ics">Add to calendar</a>` : ''}
       <button class="btn ghost" type="button" data-again>Book another</button>
@@ -275,5 +311,6 @@ if (floating && 'IntersectionObserver' in window) {
     .observe(document.getElementById('book'));
 }
 
-renderCalendar();
+calEl.innerHTML = '<div class="skeleton cal-skel"></div>';
 showMessage('Pick a day to see open times.');
+loadHours().then(renderCalendar);
