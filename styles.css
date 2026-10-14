@@ -411,3 +411,21 @@ body { background: linear-gradient(140deg, var(--blush) 0%, #F1E7F2 45%, var(--s
 .nav > .btn, .nav > .nav-actions { grid-area: right; justify-self: end; }
 @media (max-width: 1040px) { .nav ul { display: none; } }
 @media (max-width: 480px) { .nav .logo { font-size: 1.25rem; } .nav-actions .btn { padding: 8px 12px; } }
+
+/* Side scenery: clouds up top, trees at the bottom, both edges. Decorative only. */
+body::before, body::after {
+  content: ""; position: fixed; top: 0; bottom: 0; z-index: -1; pointer-events: none;
+  width: clamp(110px, calc((100vw - 1140px) / 2 + 30px), 280px);
+  background:
+    url("decor/cloud.svg") no-repeat 20% 14% / 78% auto,
+    url("decor/cloud.svg") no-repeat 85% 34% / 52% auto,
+    url("decor/trees.svg") no-repeat bottom left / 100% auto;
+  animation: drift 26s ease-in-out infinite alternate;
+}
+body::before { left: 0; }
+body::after { right: 0; transform: scaleX(-1); animation-delay: -13s; }
+@keyframes drift {
+  from { background-position: 14% 14%, 92% 34%, bottom left; }
+  to   { background-position: 30% 14%, 74% 34%, bottom left; }
+}
+@media (max-width: 1100px) { body::before, body::after { opacity: .45; } }
