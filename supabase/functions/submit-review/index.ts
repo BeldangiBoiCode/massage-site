@@ -1,5 +1,6 @@
-// Public review form -> reviews table (status 'pending' until Nikesh approves it on the admin page).
-// Validates input, blocks links/spam, rate-limits by IP. verify_jwt = false (public form).
+// Review form -> reviews table (status 'pending' until Nikesh approves it on the admin page).
+// Only a signed-in customer with a completed visit (appointments.status = 'done', set by Nikesh) can review it, once per visit.
+// Validates input, blocks links/spam, rate-limits by IP. verify_jwt = false (we check the user's token ourselves).
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
 const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
@@ -62,8 +63,19 @@ Deno.serve(async (req) => {
     const { data } = await db.auth.getUser(jwt);
     userId = data.user?.id ?? null;
   }
+  if (!userId) return reply({ error: 'Please sign in to leave a review.' }, 401);
 
-  const { error } = await db.from('reviews').insert({ user_id: userId, name, rating, body, service: service || null });
+  // The visit must be this customer's, finished by Nikesh, and not reviewed yet.
+  const appointmentId = Number(b.appointment_id);
+  if (!Number.isInteger(appointmentId)) return reply({ error: 'Pick the visit you are reviewing.' }, 400);
+  const { data: visit } = await db.from('appointments').select('id, user_id, status, service').eq('id', appointmentId).maybeSingle();
+  if (!visit || visit.user_id !== userId || visit.status !== 'done') {
+    return reply({ error: 'Reviews open once Nikesh has marked your visit as completed.' }, 403);
+  }
+  const { data: already } = await db.from('reviews').select('id').eq('appointment_id', appointmentId).maybeSingle();
+  if (already) return reply({ error: 'You already reviewed that visit. Thank you!' }, 409);
+
+  const { error } = await db.from('reviews').insert({ user_id: userId, appointment_id: appointmentId, name, rating, body, service: visit.service });
   if (error) return reply({ error: 'Could not save your review. Please try again.' }, 500);
   return reply({ ok: true, message: 'Thank you! Your review will appear once Nikesh has read it.' });
 });

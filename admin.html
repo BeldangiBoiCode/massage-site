@@ -25,7 +25,7 @@
 </header>
 
 <main class="adm" hidden>
-  <div class="adm-top"><h1>Studio</h1></div>
+  <div class="adm-top"><div><p class="adm-eyebrow" id="adm-date">Namaste Nirvana</p><h1>Studio</h1></div></div>
 
   <div class="adm-stats" id="stats">
     <div class="stat"><span class="skeleton"></span><span>Today</span></div>
@@ -54,15 +54,60 @@
   <div class="auth-card"><h1>Not for you</h1><p class="lead">This page is only for the studio owner.</p><a class="btn" href="./">Back to the site</a></div>
 </main>
 
+<button class="fab" id="fab" type="button" aria-haspopup="dialog">⚙ Settings</button>
+<div class="settings" id="settings" hidden>
+  <div class="settings-card" role="dialog" aria-modal="true" aria-labelledby="set-title">
+    <div class="settings-head"><h2 id="set-title">Settings</h2><button class="act" type="button" id="set-close">Close</button></div>
+    <section class="set-sec">
+      <h3>See the site as others do</h3>
+      <p class="c-sub">Opens in a new tab with your own account, so you can click through exactly what they see.</p>
+      <div class="acts wide">
+        <a class="act main" href="account.html?preview=1" target="_blank" rel="noopener">Customer view</a>
+        <a class="act" href="staff.html?preview=1" target="_blank" rel="noopener">Employee view</a>
+        <a class="act" href="./" target="_blank" rel="noopener">Public website</a>
+      </div>
+    </section>
+    <section class="set-sec">
+      <h3>My profile</h3>
+      <p class="c-sub">Add your photo and answer the questions, just like a customer.</p>
+      <div class="acts wide"><a class="act" href="account.html?preview=1" target="_blank" rel="noopener">Open my profile</a></div>
+    </section>
+    <section class="set-sec" id="cal-sec">
+      <h3>Calendars</h3>
+      <p class="c-sub">Every appointment shows up in your Apple or Google Calendar, with the client's name, phone, notes and add-ons. Keep this link private.</p>
+      <div id="cal-links"><div class="skeleton skeleton-line" style="width:70%"></div></div>
+      <h4 class="set-h4">Connect your calendar accounts</h4>
+      <p class="c-sub">Sign in once and every new, changed or cancelled appointment is written into your real calendar automatically. Your login is stored encrypted on the backend; this page never sees it.</p>
+      <div id="conn-list"></div>
+      <div class="acts wide"><button class="act main" type="button" id="conn-google">Connect Google Calendar</button><button class="act" type="button" id="conn-apple-toggle">Connect Apple Calendar</button><button class="act" type="button" id="conn-sync">Sync now</button></div>
+      <form class="mini-form" id="apple-form" hidden>
+        <input name="apple_id" type="email" placeholder="Apple ID email" autocomplete="username" required>
+        <input name="app_password" type="password" placeholder="App-specific password" autocomplete="off" required>
+        <p class="c-sub" style="grid-column:1/-1">Apple needs an app-specific password, not your normal one. Make it at <a href="https://appleid.apple.com/account/manage" target="_blank" rel="noopener">appleid.apple.com</a> &gt; Sign-In and Security &gt; App-Specific Passwords.</p>
+        <button class="act main" type="submit">Connect</button>
+      </form>
+      <p class="status" id="conn-status" role="status" aria-live="polite"></p>
+      <h4 class="set-h4">Or just block times from a calendar link</h4>
+      <p class="c-sub">Paste your calendar's private ICS link. Its busy times stop people booking you.</p>
+      <form class="mini-form" id="src-form"><input name="label" placeholder="Name, e.g. Google" required><input name="url" type="url" placeholder="https://... or webcal://..." required><button class="act main" type="submit">Add calendar</button></form>
+      <div id="src-list"></div>
+    </section>
+    <section class="set-sec">
+      <h3>Email and POS</h3>
+      <p class="c-sub">Automatic emails to clients start once the studio's own domain is connected. POS card payments are recorded here by hand for now ("Charged on the POS"); a direct link to the Windows POS comes later.</p>
+    </section>
+  </div>
+</div>
 <div class="toast" id="toast" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="supabase-client.js"></script>
 <script src="chat.js"></script>
+<script src="admin-settings.js" defer></script>
 <script>
 const TZ = 'America/New_York';
 const PRICES = { 60: 85, 90: 120 };
-const S = { appts: [], pay: [], reqs: [], profiles: [], off: [], reviews: [], disc: [], msgs: [], notes: {}, tab: 'schedule', when: 'upcoming', q: '', open: new Set() };
+const S = { appts: [], pay: [], reqs: [], profiles: [], off: [], reviews: [], disc: [], msgs: [], notes: {}, ideas: [], loyalty: [], photos: {}, tab: 'schedule', when: 'upcoming', q: '', open: new Set() };
 const $ = (s) => document.querySelector(s);
 
 /* ---------- helpers ---------- */
@@ -106,7 +151,7 @@ const isUpcoming = (a) => a.status === 'scheduled' && new Date(a.starts_at).getT
 /* ---------- loading ---------- */
 async function load() {
   const nowIso = new Date().toISOString();
-  const [appt, pay, req, prof, off, rev, disc, msg, notes] = await Promise.all([
+  const [appt, pay, req, prof, off, rev, disc, msg, notes, ideas, loy] = await Promise.all([
     sb.from('appointments').select('*').order('starts_at', { ascending: false }).limit(1000),
     sb.from('payments').select('*').order('paid_at', { ascending: false }).limit(3000),
     sb.from('booking_requests').select('*').eq('status', 'new').order('created_at'),
@@ -116,12 +161,32 @@ async function load() {
     sb.from('discounts').select('*').order('created_at', { ascending: false }).limit(200),
     sb.from('messages').select('*').order('created_at', { ascending: false }).limit(2000),
     sb.from('customer_notes').select('*'),
+    sb.from('suggestions').select('*').order('created_at', { ascending: false }).limit(300),
+    sb.from('loyalty_points').select('*').order('created_at', { ascending: false }).limit(2000),
   ]);
   S.appts = appt.data ?? []; S.pay = pay.data ?? []; S.reqs = req.data ?? []; S.profiles = prof.data ?? [];
   S.off = off.data ?? []; S.reviews = rev.data ?? []; S.disc = disc.data ?? [];
+  S.ideas = ideas.data ?? []; S.loyalty = loy.data ?? [];
   S.msgs = msg.data ?? []; S.notes = Object.fromEntries((notes.data ?? []).map((n) => [n.customer_key, n.note]));
+  loadPhotos();
   render();
 }
+
+// Profile photos live in a private bucket: ask for short-lived links, then redraw.
+async function loadPhotos() {
+  const paths = S.profiles.map((p) => p.photo_path).filter((x) => x && !S.photos[x]);
+  if (!paths.length) return;
+  const { data } = await sb.storage.from('avatars').createSignedUrls(paths, 3600);
+  (data ?? []).forEach((d) => { if (d.signedUrl) S.photos[d.path] = d.signedUrl; });
+  if (data?.length) render();
+}
+const profileOf = (a) => a.user_id ? S.profiles.find((p) => p.id === a.user_id) : null;
+const likesLine = (p) => {
+  const x = p?.answers ?? {};
+  const bits = [p?.pressure_pref || x.pressure, ...(x.areas ?? []).slice(0, 3), ...(x.styles ?? []).slice(0, 1)].filter(Boolean);
+  return bits.length ? `<p class="likes">Likes: ${bits.map((b) => `<span>${esc(b)}</span>`).join('')}</p>` : '';
+};
+const avatarHtml = (p, big) => `<span class="mini-avatar ${big ? 'big' : ''}">${p?.photo_path && S.photos[p.photo_path] ? `<img src="${attr(S.photos[p.photo_path])}" alt="">` : esc((p?.full_name || '?')[0].toUpperCase())}</span>`;
 
 /* ---------- schedule ---------- */
 function apptCard(a, pm) {
@@ -136,9 +201,10 @@ function apptCard(a, pm) {
   const key = 'a' + a.id;
   return `<article class="a-card">
     <div class="a-top"><b class="a-time">${esc(clock(a.starts_at))}</b><span class="c-sub">${esc(a.duration_min)} min</span><span class="tag ${esc(a.status)}">${esc(a.status.replace('_', ' '))}</span></div>
-    <h3 class="a-name">${esc(a.client_name)}</h3>
+    <h3 class="a-name">${profileOf(a) ? avatarHtml(profileOf(a)) : ''}${esc(a.client_name)}</h3>
     <p class="a-meta">${esc(a.service)}${a.addons?.length ? ' · ' + esc(a.addons.join(', ')) : ''}</p>
-    <p class="a-money">${money(price)} ${payTag}</p>
+    ${likesLine(profileOf(a))}
+    <p class="a-money">${money(price)} ${payTag}${Number(a.tip) > 0 ? ` <span class="tag paid">Tip ${money(a.tip)}</span>` : ''}</p>
     <div class="acts">
       ${a.client_phone ? `<a class="act main" href="${attr(callHref(a.client_phone))}">Call</a><a class="act" href="${attr(smsHref(a.client_phone, msg))}">Text</a>` : ''}
       ${a.client_email ? `<a class="act" href="${attr(mailHref(a.client_email, 'Your massage at Namaste Nirvana', msg))}">Email</a>` : ''}
@@ -148,8 +214,14 @@ function apptCard(a, pm) {
         ${a.status !== 'cancelled' ? `<div><h4>Payment</h4>
           <form class="mini-form" data-pay="${a.id}">
             <input name="amount" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="Amount" value="${remaining}" required>
-            <select name="method"><option value="cash">Cash</option><option value="card">Card</option><option value="venmo">Venmo</option><option value="zelle">Zelle</option><option value="other">Other</option></select>
+            <select name="method"><option value="cash">Cash</option><option value="pos">POS card</option><option value="card">Card (other)</option><option value="venmo">Venmo</option><option value="zelle">Zelle</option><option value="other">Other</option></select>
             <button class="act main" type="submit">Record payment</button>
+          </form>
+          <div class="acts" style="margin-top:8px"><button class="act" type="button" data-act="pos" data-id="${a.id}">Charged on the POS${remaining ? ' (' + money(remaining) + ')' : ''}</button></div></div>
+        <div><h4>Tip</h4>
+          <form class="mini-form" data-tip="${a.id}">
+            <input name="tip" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Tip amount" value="${Number(a.tip) > 0 ? a.tip : ''}">
+            <button class="act" type="submit">Save tip</button>
           </form></div>` : ''}
         <div><h4>Status</h4><div class="acts">
           ${a.status !== 'done' ? `<button class="act" type="button" data-act="status" data-id="${a.id}" data-to="done">Mark done</button>` : ''}
@@ -226,8 +298,16 @@ function buildCustomers() {
     .sort((a, b) => (b.last || '').localeCompare(a.last || '') || a.name.localeCompare(b.name));
 }
 
+const pointsOf = (uid) => S.loyalty.filter((l) => l.user_id === uid).reduce((n, l) => n + l.points, 0);
+const ANS = { pressure: 'Pressure', styles: 'Styles', areas: 'Focus areas', goals: 'Goals', sensitive: 'Sensitive to', room: 'Room', music: 'Music', first: 'First massage', often: 'Wants to come' };
+function answersHtml(a) {
+  return '<dl class="kv">' + Object.entries(ANS).filter(([k]) => a[k] && (!Array.isArray(a[k]) || a[k].length))
+    .map(([k, l]) => `<div><dt>${l}</dt><dd>${esc(Array.isArray(a[k]) ? a[k].join(', ') : a[k])}</dd></div>`).join('') + '</dl>'
+    + (a.extra ? `<div class="note-box" style="margin-top:8px">${esc(a.extra)}</div>` : '');
+}
+
 function customerCard(c, pm) {
-  const unread = c.profile ? unreadFor(c.key) : 0;
+  const unread = unreadFor(tkey(c));
   const live = c.appts.filter((a) => a.status !== 'cancelled' && a.status !== 'no_show');
   const paid = live.reduce((n, a) => n + (pm[a.id] ?? 0), 0);
   const owed = c.appts.filter((a) => a.status === 'done' || (a.status === 'scheduled' && new Date(a.starts_at) < new Date()))
@@ -242,20 +322,30 @@ function customerCard(c, pm) {
       <span>${money(a.price ?? 0)} <span class="tag ${dead ? 'cancelled' : full ? 'paid' : 'unpaid'}">${dead ? esc(a.status.replace('_', ' ')) : full ? 'paid' : 'unpaid'}</span></span></div>`;
   }).join('');
   return `<article class="a-card">
-    <h3 class="a-name">${esc(c.name || 'Unnamed')}</h3>
+    <h3 class="a-name">${avatarHtml(c.profile)}${esc(c.name || 'Unnamed')}</h3>
     <p class="c-sub">${c.phone ? esc(c.phone) : ''}${c.phone && c.email ? ' · ' : ''}${c.email ? esc(c.email) : ''}</p>
+    ${c.profile ? `<p class="a-meta"><span class="tag paid">★ ${pointsOf(c.key)} points</span></p>` : ''}
     <p class="a-meta">${live.length} visit${live.length === 1 ? '' : 's'} · paid ${money(paid)}${owed > 0 ? ` · <b>owes ${money(owed)}</b>` : ''}${c.profile ? ' · has an account' : ''}</p>
     <div class="acts">
       ${c.phone ? `<a class="act main" href="${attr(callHref(c.phone))}">Call</a><a class="act" href="${attr(smsHref(c.phone, hi))}">Text</a>` : ''}
       ${c.email ? `<a class="act" href="${attr(mailHref(c.email, 'From Namaste Nirvana', hi))}">Email</a>` : ''}
-      ${c.profile ? `<button class="act" type="button" data-act="chat" data-id="${attr(c.key)}">Chat${unread ? ` (${unread})` : ''}</button>` : ''}
+      <button class="act" type="button" data-act="chat" data-id="${attr(tkey(c))}">Chat${unread ? ` (${unread})` : ''}</button>
     </div>
     <details class="more" data-key="${key}" ${S.open.has(key) ? 'open' : ''}><summary>Profile, visits, notes and discounts</summary>
       <div class="more-body">
+        ${c.profile?.answers && Object.keys(c.profile.answers).length ? `<div><h4>What they like</h4>${answersHtml(c.profile.answers)}</div>` : ''}
+        ${S.ideas.filter((i) => i.user_id === c.key).length ? `<div><h4>Requests and suggestions</h4>${S.ideas.filter((i) => i.user_id === c.key).slice(0, 6).map((i) => `<div class="visit-line"><span><b>${esc(i.kind)}</b> · ${esc(i.body)}</span><span class="c-sub">${esc(shortDay(i.created_at))}</span></div>`).join('')}</div>` : ''}
         ${c.profile?.health_notes ? `<div><h4>Health notes (private)</h4><div class="note-box">${esc(c.profile.health_notes)}</div></div>` : ''}
         ${c.profile?.pressure_pref ? `<div><h4>Pressure</h4><p>${esc(c.profile.pressure_pref)}</p></div>` : ''}
         <div><h4>Contact</h4><p>${c.phone ? esc(c.phone) : 'No phone'} · ${c.email ? esc(c.email) : 'No email'}${c.profile?.birthday ? ' · birthday ' + esc(c.profile.birthday) : ''}</p>
-          ${c.profile ? '' : '<p class="c-sub">Booked as a guest, so there is no in-app chat. Call, text or email.</p>'}</div>
+          ${c.profile ? '' : '<p class="c-sub">Booked as a guest. You can still chat here; they see it once they make an account, so also text or email them.</p>'}</div>
+        ${c.profile ? `<div><h4>Loyalty points: ${pointsOf(c.key)}</h4>
+          <p class="c-sub">Earned automatically when a visit is marked done and fully paid. Use this to redeem or fix points.</p>
+          <form class="mini-form" data-loy="${attr(c.key)}">
+            <input name="points" type="number" step="1" placeholder="+50 or -100" required>
+            <input name="reason" maxlength="200" placeholder="Reason, e.g. Free add-on" required>
+            <button class="act" type="submit">Add to ledger</button>
+          </form></div>` : ''}
         <div><h4>Private notes</h4>
           <form class="note-form" data-note="${attr(c.key)}">
             <textarea name="note" maxlength="4000" placeholder="Preferences, injuries, anything to remember">${esc(S.notes[c.key] ?? '')}</textarea>
@@ -323,35 +413,42 @@ function renderBreaks() {
   };
   $('#p-breaks').innerHTML = `<div class="acts wide" style="margin-bottom:14px"><a class="act main" href="admin-timeoff.html">Add a break or days off</a></div>` +
     (S.off.length ? S.off.map((t) => `<article class="a-card"><h3 class="a-name">${esc(range(t))}</h3>${t.reason ? `<p class="a-meta">${esc(t.reason)}</p>` : ''}
-      <p class="c-sub">Nobody can book these times.</p>
+      <p class="c-sub">Nobody can book these times. The note shows on the website.</p>
       <div class="acts"><button class="act danger" type="button" data-act="off-del" data-id="${t.id}">Remove</button></div></article>`).join('')
       : '<div class="empty-card">No time off planned. Add one and those times disappear from the booking calendar right away.</div>');
 }
 
 
 /* ---------- chat ---------- */
-const unreadFor = (id) => S.msgs.filter((m) => m.customer_id === id && m.sender === 'customer' && !m.read_at).length;
+// A chat thread is the account id, or 'g:<phone digits or email>' for clients without an account.
+const isUuid = (k) => /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(k);
+const tkey = (c) => (c.profile || isUuid(c.key) ? c.key : 'g:' + c.key);
+const threadOf = (m) => m.customer_id || m.guest_key;
+const unreadFor = (id) => S.msgs.filter((m) => threadOf(m) === id && m.sender === 'customer' && !m.read_at).length;
 let sheet = null;
 
 function renderChat() {
   const byCust = new Map();
   for (const m of S.msgs) { // S.msgs is newest first
-    if (!byCust.has(m.customer_id)) byCust.set(m.customer_id, { id: m.customer_id, last: m, unread: 0 });
-    if (m.sender === 'customer' && !m.read_at) byCust.get(m.customer_id).unread++;
+    const k = threadOf(m);
+    if (!byCust.has(k)) byCust.set(k, { id: k, last: m, unread: 0 });
+    if (m.sender === 'customer' && !m.read_at) byCust.get(k).unread++;
   }
   const people = buildCustomers();
-  const rows = [...byCust.values()].map((t) => ({ ...t, who: people.find((c) => c.key === t.id) }))
+  const rows = [...byCust.values()].map((t) => ({ ...t, who: people.find((c) => tkey(c) === t.id) }))
     .sort((a, b) => b.last.created_at.localeCompare(a.last.created_at));
   $('#p-chat').innerHTML = rows.length ? rows.map((t) => `<button type="button" class="a-card convo ${t.unread ? 'unread' : ''}" data-act="chat" data-id="${attr(t.id)}">
       <h3 class="a-name">${esc(t.who?.name || 'Customer')}</h3>${t.unread ? `<span class="badge">${t.unread}</span>` : `<span class="c-sub">${esc(shortDay(t.last.created_at))}</span>`}
       <p>${t.last.sender === 'admin' ? 'You: ' : ''}${esc(t.last.body)}</p></button>`).join('')
-    : '<div class="empty-card">No messages yet. Customers with an account can message you from their account page, and you can start a chat from any client card. Guests (no account) are reached by call, text or email.</div>';
+    : '<div class="empty-card">No messages yet. Customers can message you from their account page, and you can start a chat with any client from their client card, even if they only gave a phone number or email.</div>';
 }
 
 function openChat(id) {
-  const c = buildCustomers().find((x) => x.key === id);
+  const c = buildCustomers().find((x) => tkey(x) === id);
+  const guest = id.startsWith('g:');
   closeChat();
   const hi = `Hi ${first(c?.name)}, `;
+  const invite = `Hi ${first(c?.name)}, it's Nikesh at Namaste Nirvana. Make your free account to chat with me and manage your visits: ${SITE_BASE}auth.html`;
   sheet = document.createElement('div');
   sheet.className = 'chat-sheet';
   sheet.innerHTML = `<div class="chat-sheet-head"><h3>${esc(c?.name || 'Customer')}</h3>
@@ -359,11 +456,12 @@ function openChat(id) {
       <div class="acts">
         ${c?.phone ? `<a class="act main" href="${attr(callHref(c.phone))}">Call</a><a class="act" href="${attr(smsHref(c.phone, hi))}">Text</a>` : ''}
         ${c?.email ? `<a class="act" href="${attr(mailHref(c.email, 'From Namaste Nirvana', hi))}">Email</a>` : ''}
-      </div></div><div id="sheet-chat"></div>`;
+      </div>${guest ? `<p class="c-sub guest-note">No account yet, so they can't see this chat in the app. Send them the invite so they can.
+        ${c?.phone ? `<a href="${attr(smsHref(c.phone, invite))}">Text invite</a>` : ''} ${c?.email ? `<a href="${attr(mailHref(c.email, 'Your Namaste Nirvana account', invite))}">Email invite</a>` : ''}</p>` : ''}</div><div id="sheet-chat"></div>`;
   document.body.appendChild(sheet);
   document.body.style.overflow = 'hidden';
   const root = sheet.querySelector('#sheet-chat');
-  sheet.chat = mountChat(root, { customerId: id, me: 'admin', placeholder: `Message ${first(c?.name)}` });
+  sheet.chat = mountChat(root, guest ? { guestKey: id, me: 'admin', placeholder: `Note or message for ${first(c?.name)}` } : { customerId: id, me: 'admin', placeholder: `Message ${first(c?.name)}` });
   root.addEventListener('chat:read', () => refreshMessages());
 }
 
@@ -505,6 +603,14 @@ document.addEventListener('click', (e) => {
     if (act === 'tab') { S.tab = el.dataset.tab; render(); window.scrollTo({ top: 0 }); }
     else if (act === 'when') { S.when = el.dataset.when; renderSchedule(); }
     else if (act === 'toast-close') $('#toast').hidden = true;
+    else if (act === 'pos') {
+      const a = S.appts.find((x) => x.id == id), pm = payMap();
+      const due = Number(a.price ?? 0) + Number(a.tip ?? 0) - (pm[a.id] ?? 0);
+      if (!(due > 0)) throw new Error('Nothing left to charge.');
+      if (!confirm(`Record ${money(due)} as paid on the POS for ${a.client_name}?`)) return;
+      must(await sb.from('payments').insert({ appointment_id: a.id, amount: due, method: 'pos' }));
+      await load();
+    }
     else if (act === 'chat') openChat(id);
     else if (act === 'sheet-close') closeChat();
     else if (act === 'csv') exportCsv(el.dataset.what);
@@ -555,6 +661,22 @@ document.addEventListener('submit', (e) => {
       must(await sb.from('payments').insert({ appointment_id: Number(f.dataset.pay), amount, method: f.method.value }));
       await load();
     });
+  } else if (f.dataset.loy) {
+    e.preventDefault();
+    guard(async () => {
+      const points = Math.trunc(Number(f.points.value));
+      if (!points) throw new Error('Enter points like 50 or -100.');
+      must(await sb.from('loyalty_points').insert({ user_id: f.dataset.loy, points, reason: f.reason.value.trim() }));
+      await load();
+    });
+  } else if (f.dataset.tip) {
+    e.preventDefault();
+    guard(async () => {
+      const tip = Number(f.tip.value || 0);
+      if (!(tip >= 0)) throw new Error('Enter a tip amount.');
+      must(await sb.from('appointments').update({ tip }).eq('id', Number(f.dataset.tip)));
+      await load();
+    });
   } else if (f.dataset.note !== undefined) {
     e.preventDefault();
     guard(async () => {
@@ -603,8 +725,8 @@ function watchInbox() {
     if (S.msgs.some((m) => m.id === p.new.id)) return;
     S.msgs.unshift(p.new);
     if (p.new.sender === 'customer' && !(sheet && sheet.querySelector('.chat'))) {
-      const who = buildCustomers().find((c) => c.key === p.new.customer_id)?.name || 'A customer';
-      toast(`<span><b>${esc(who)}</b>: ${esc(p.new.body.slice(0, 90))}</span><div class="toast-row"><button class="act" type="button" data-act="chat" data-id="${attr(p.new.customer_id)}">Open chat</button></div>`, 20000);
+      const who = buildCustomers().find((c) => tkey(c) === threadOf(p.new))?.name || 'A customer';
+      toast(`<span><b>${esc(who)}</b>: ${esc(p.new.body.slice(0, 90))}</span><div class="toast-row"><button class="act" type="button" data-act="chat" data-id="${attr(threadOf(p.new))}">Open chat</button></div>`, 20000);
     }
     if (!sheet) render(); else renderTabsOnly();
   }).subscribe();

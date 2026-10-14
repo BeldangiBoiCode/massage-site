@@ -10,123 +10,508 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="chat.css">
+<link rel="stylesheet" href="account.css">
 </head>
 <body>
+<div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
 <header class="site-header">
   <nav class="wrap nav" aria-label="Main">
     <a class="logo" href="./">Namaste Nirvana</a>
     <div class="nav-actions">
-      <a class="btn small ghost" id="admin-link" href="admin.html" hidden>Admin</a>
+      <a class="btn small ghost" id="back-admin" href="admin.html" hidden>Back to Studio</a>
       <button class="btn small ghost" id="sign-out" type="button">Sign out</button>
     </div>
   </nav>
 </header>
 
-<main class="wrap account" hidden>
-  <div class="account-head">
-    <h1 id="hello">Your profile</h1>
-    <a class="btn" href="./#book">Book a session</a>
-  </div>
+<div class="preview-bar" id="preview-bar" hidden>You're previewing the customer view with your own account. Customers see exactly this.</div>
 
-  <div class="account-grid">
-    <form id="profile" novalidate>
-      <h2>Your details</h2>
-      <label>Full name<input name="full_name" autocomplete="name" required></label>
-      <div class="row">
-        <label>Phone<input name="phone" type="tel" autocomplete="tel"></label>
-        <label>Birthday <span class="opt">(optional)</span><input name="birthday" type="date"></label>
-      </div>
-      <label>Pressure you like
-        <select name="pressure_pref">
-          <option value="">Not sure yet</option>
-          <option value="light">Light</option>
-          <option value="medium">Medium</option>
-          <option value="firm">Firm</option>
-        </select>
-      </label>
-      <label>Injuries, health notes or areas to avoid <span class="opt">(only Nikesh sees this)</span>
-        <textarea name="health_notes" rows="4"></textarea>
-      </label>
-      <fieldset>
-        <legend>Reminders the day before</legend>
-        <label class="check"><input type="checkbox" name="email_reminders"> Email</label>
-        <label class="check"><input type="checkbox" name="sms_reminders"> Text message</label>
-      </fieldset>
-      <button class="btn" type="submit">Save profile</button>
-      <p class="status" id="status" role="status" aria-live="polite"></p>
-    </form>
+<main class="wrap acct" hidden>
+  <!-- Hero -->
+  <section class="hero-card">
+    <button class="avatar" id="avatar-btn" type="button" aria-label="Change profile photo">
+      <img id="avatar-img" alt="" hidden>
+      <span id="avatar-initial">?</span>
+      <em>Change</em>
+    </button>
+    <input type="file" id="avatar-file" accept="image/jpeg,image/png,image/webp" hidden>
+    <div class="hero-text">
+      <p class="eyebrow">My profile</p>
+      <h1 id="hello">Welcome</h1>
+      <p class="sub" id="hero-sub"><span class="skeleton skeleton-line" style="width:220px"></span></p>
+      <div class="meter" aria-label="Profile completeness"><i id="meter-fill" style="width:0"></i></div>
+      <p class="meter-text" id="meter-text"></p>
+    </div>
+    <div class="hero-actions">
+      <button class="btn" type="button" data-open="book">Book a session</button>
+      <button class="btn ghost" type="button" data-open="visits">My visits</button>
+    </div>
+  </section>
 
-    <div class="history">
-      <h2>Your visits</h2>
-      <ul class="list" id="appts" aria-busy="true"><li class="skeleton skeleton-row"></li><li class="skeleton skeleton-row"></li></ul>
-      <h2>Message Nikesh</h2>
-      <p class="empty">Questions about a visit? Write here and he will reply in this chat.</p>
-      <div id="chat"></div>
-      <h2>Your requests</h2>
-      <ul class="list" id="requests" aria-busy="true"><li class="skeleton skeleton-row"></li><li class="skeleton skeleton-row"></li></ul>
+  <section class="points-card" id="points-card" aria-label="Loyalty points">
+    <div class="points-main"><span class="star" aria-hidden="true">★</span>
+      <div><p class="eyebrow">Loyalty points</p><b id="points-total"><span class="skeleton skeleton-line" style="width:70px;height:34px"></span></b></div></div>
+    <p class="points-note">Earn 1 point for every dollar of a visit, once Nikesh marks it complete and it's paid. Ask Nikesh about using your points.</p>
+  </section>
+
+  <div class="acct-grid">
+    <!-- Left: details + about you -->
+    <div class="col">
+      <details class="panel" id="p-details" open>
+        <summary><span>My details</span><small>Name, phone, email</small></summary>
+        <form id="profile" class="panel-body" novalidate>
+          <label>Full name<input name="full_name" autocomplete="name" required></label>
+          <div class="row">
+            <label>Phone<input name="phone" type="tel" autocomplete="tel" placeholder="(802) 555-0123"></label>
+            <label>Birthday <span class="opt">(optional)</span><input name="birthday" type="date"></label>
+          </div>
+          <label>Email
+            <input name="email" type="email" autocomplete="email">
+            <span class="hint" id="email-hint">We'll send a confirmation link to the new address before it changes.</span>
+          </label>
+          <fieldset>
+            <legend>Reminders the day before</legend>
+            <label class="check"><input type="checkbox" name="email_reminders"> Email</label>
+            <label class="check"><input type="checkbox" name="sms_reminders"> Text message</label>
+          </fieldset>
+          <label>Injuries, health notes or areas to avoid <span class="opt">(only Nikesh sees this)</span>
+            <textarea name="health_notes" rows="3"></textarea>
+          </label>
+          <button class="btn" type="submit">Save details</button>
+          <p class="status" id="profile-status" role="status" aria-live="polite"></p>
+        </form>
+      </details>
+
+      <details class="panel" id="p-about">
+        <summary><span>About you</span><small id="about-sub">A few quick questions</small></summary>
+        <form id="about" class="panel-body" novalidate>
+          <p class="panel-intro">These help Nikesh get your session right before you walk in. Skip anything you like.</p>
+          <div id="q-list"></div>
+          <button class="btn" type="submit">Save my answers</button>
+          <p class="status" id="about-status" role="status" aria-live="polite"></p>
+        </form>
+      </details>
+
+      <details class="panel" id="p-ideas">
+        <summary><span>Requests &amp; suggestions</span><small>Tell Nikesh how to make it better</small></summary>
+        <div class="panel-body">
+          <p class="panel-intro">A request for your next visit, or an idea to make things better. Only Nikesh reads these.</p>
+          <form id="idea-form" novalidate>
+            <div class="seg2" role="radiogroup" aria-label="Type">
+              <label><input type="radio" name="kind" value="request" checked><span>Request</span></label>
+              <label><input type="radio" name="kind" value="suggestion"><span>Suggestion</span></label>
+            </div>
+            <textarea name="body" rows="3" maxlength="1000" placeholder="e.g. Could the room be a bit warmer? Please focus on my shoulders next time." required></textarea>
+            <button class="btn small" type="submit">Send to Nikesh</button>
+            <p class="status" id="idea-status" role="status" aria-live="polite"></p>
+          </form>
+          <ul class="list" id="ideas"></ul>
+        </div>
+      </details>
+    </div>
+
+    <!-- Right: book, visits, messages, stretches -->
+    <div class="col">
+      <details class="panel" id="p-book">
+        <summary><span>Book a session</span><small>Pick a day and time right here</small></summary>
+        <div class="panel-body booking-in">
+          <form id="booking" novalidate>
+            <label>Your name<input name="name" autocomplete="name" required></label>
+            <div class="row">
+              <label>Phone<input name="phone" type="tel" autocomplete="tel" required></label>
+              <label>Email <span class="opt">(for reminders)</span><input name="email" type="email" autocomplete="email"></label>
+            </div>
+            <div class="row">
+              <label>Massage
+                <select name="service">
+                  <option>Deep tissue</option>
+                  <option>Swedish relaxation</option>
+                  <option>Sports and recovery</option>
+                </select>
+              </label>
+              <label>Length
+                <select name="duration">
+                  <option value="60">60 min, $85</option>
+                  <option value="90">90 min, $120</option>
+                </select>
+              </label>
+            </div>
+            <div class="field">
+              <span class="field-label" id="day-label">Day <span class="opt">(open Sunday and Monday)</span></span>
+              <input type="hidden" name="date" required>
+              <div class="cal" id="cal" role="group" aria-labelledby="day-label"></div>
+            </div>
+            <div class="field">
+              <span class="field-label" id="time-label">Time</span>
+              <input type="hidden" name="time" required>
+              <div class="slots" id="slots" role="radiogroup" aria-labelledby="time-label"></div>
+              <p class="hint" id="slot-hint">Sessions run 9am to 8pm, with a short break between clients.</p>
+            </div>
+            <fieldset class="addon-picks">
+              <legend>Add-ons <span class="opt">(optional)</span></legend>
+              <label class="check"><input type="checkbox" name="addon" value="Cupping"> Cupping, +$15</label>
+              <label class="check"><input type="checkbox" name="addon" value="TENS machine"> TENS machine, +$20</label>
+            </fieldset>
+            <label>Anything I should know? <span class="opt">(optional)</span><textarea name="notes" rows="3"></textarea></label>
+            <button class="btn" type="submit"><span class="btn-label">Book this time</span></button>
+            <p class="status" id="status" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </details>
+
+      <details class="panel" id="p-visits">
+        <summary><span>My visits</span><small id="visits-sub">Past and upcoming</small></summary>
+        <div class="panel-body">
+          <ul class="visits" id="appts" aria-busy="true"><li class="skeleton skeleton-row"></li><li class="skeleton skeleton-row"></li></ul>
+          <h3 class="mini-title">Requested online</h3>
+          <ul class="list" id="requests"><li class="skeleton skeleton-row"></li></ul>
+        </div>
+      </details>
+
+      <details class="panel" id="p-points">
+        <summary><span>Points history</span><small id="points-sub">How you earned them</small></summary>
+        <div class="panel-body"><ul class="list" id="points-list"><li class="skeleton skeleton-row"></li></ul></div>
+      </details>
+
+      <details class="panel" id="p-messages">
+        <summary><span>Messages</span><small id="msg-sub">Chat with Nikesh</small><b class="badge" id="msg-badge" hidden>0</b></summary>
+        <div class="panel-body">
+          <ul class="convos" id="convos"><li class="skeleton skeleton-row"></li></ul>
+          <div id="chat-wrap" hidden>
+            <div class="chat-top"><b>Nikesh</b><button class="link" type="button" id="chat-close">Close chat</button></div>
+            <div id="chat"></div>
+          </div>
+          <p class="hint">Chats are deleted automatically after 30 days. You can delete one yourself any time.</p>
+        </div>
+      </details>
+
+      <details class="panel" id="p-stretch">
+        <summary><span>Free stretches</span><small>Gentle moves for where it hurts</small></summary>
+        <div class="panel-body">
+          <p class="panel-intro">Pick where you feel it. Each area has a few simple stretches you can do at home.</p>
+          <div class="chips" id="area-chips" role="tablist" aria-label="Body area"></div>
+          <div id="stretch-list" class="stretch-list"></div>
+          <p class="hint" id="stretch-note"></p>
+        </div>
+      </details>
     </div>
   </div>
 </main>
 
+<!-- Demo payment sheet -->
+<div class="pay-modal" id="pay-modal" hidden>
+  <div class="pay-card" role="dialog" aria-modal="true" aria-labelledby="pay-title">
+    <h3 id="pay-title">Pay for your session</h3>
+    <p class="demo-tag">Demo only. No real charge is made.</p>
+    <p class="pay-what" id="pay-what"></p>
+    <div class="tips" id="pay-tips" role="radiogroup" aria-label="Tip">
+      <button type="button" data-tip="0" class="on">No tip</button>
+      <button type="button" data-tip="15">15%</button>
+      <button type="button" data-tip="20">20%</button>
+      <button type="button" data-tip="25">25%</button>
+    </div>
+    <form id="pay-form" novalidate>
+      <label>Name on card<input name="cardname" autocomplete="cc-name"></label>
+      <label>Card number<input name="card" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242"></label>
+      <div class="row"><label>Expiry<input name="exp" placeholder="MM / YY" autocomplete="cc-exp"></label><label>CVC<input name="cvc" inputmode="numeric" placeholder="123" autocomplete="cc-csc"></label></div>
+      <button class="btn" type="submit" id="pay-go">Pay</button>
+      <button class="btn ghost" type="button" id="pay-cancel">Cancel</button>
+    </form>
+    <div class="pay-done" id="pay-done" hidden><div class="check-big">✓</div><h3>Paid (demo)</h3><p>Thank you! Once real payments are connected, this is where your receipt appears.</p><button class="btn" type="button" id="pay-ok">Done</button></div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>Namaste Nirvana Massage by Nikesh Pokhrel</span>
+    <span>23 Logwood St, South Burlington, VT 05403. <a href="tel:+18023739672">(802) 373-9672</a></span>
+    <small class="credit">Developed by Beldangi Fax Machine</small>
+  </div>
+</footer>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="supabase-client.js"></script>
 <script src="chat.js"></script>
+<script src="stretches.js"></script>
+<script src="app.js"></script>
+<script src="away.js"></script>
 <script>
-const form = document.getElementById('profile');
-const status = document.getElementById('status');
+(() => {
+const $ = (s) => document.querySelector(s);
+const profileForm = $('#profile'), aboutForm = $('#about');
 const fmt = (iso) => new Date(iso).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-let user;
+const say = (el, msg, bad) => { el.className = 'status' + (bad ? ' error' : ''); el.textContent = msg; };
+const PREVIEW = new URLSearchParams(location.search).has('preview');
+let user, profile = {}, chatCtl = null;
 
+/* ---------- Questionnaire (answers are stored in profiles.answers) ---------- */
+const QUESTIONS = [
+  { id: 'pressure', label: 'What pressure do you like?', type: 'one', options: [['light', 'Light'], ['medium', 'Medium'], ['firm', 'Firm'], ['varies', 'Depends on the day']] },
+  { id: 'styles', label: 'Which massage styles do you enjoy?', type: 'many', options: ['Deep tissue', 'Swedish relaxation', 'Sports and recovery', 'Not sure yet'] },
+  { id: 'areas', label: 'Where do you want the most attention?', type: 'many', options: ['Neck', 'Shoulders', 'Upper back', 'Lower back', 'Hips', 'Legs', 'Arms and hands', 'Feet', 'Head and jaw'] },
+  { id: 'goals', label: 'What are you hoping for?', type: 'many', options: ['Pain relief', 'Stress relief', 'Better sleep', 'Athletic recovery', 'Posture', 'Just a treat'] },
+  { id: 'sensitive', label: 'Anything that bothers you?', type: 'many', options: ['Strong scents', 'Oils or lotion', 'Cold hands', 'Loud music', 'Chatting during the session', 'Ticklish'] },
+  { id: 'room', label: 'How do you like the room?', type: 'one', options: [['warm', 'Warm'], ['neutral', 'Neutral'], ['cool', 'Cool']] },
+  { id: 'music', label: 'Music?', type: 'one', options: [['quiet', 'Quiet'], ['soft', 'Soft music'], ['any', 'No preference']] },
+  { id: 'first', label: 'Is this your first massage?', type: 'one', options: [['yes', 'Yes'], ['no', 'No']] },
+  { id: 'often', label: 'How often do you want to come?', type: 'one', options: [['weekly', 'Weekly'], ['monthly', 'Monthly'], ['sometimes', 'Every now and then']] },
+];
+function drawQuestions(a) {
+  $('#q-list').innerHTML = QUESTIONS.map((q) => `<fieldset class="q"><legend>${esc(q.label)}</legend><div class="chips pick">${q.options.map((o) => {
+    const [v, l] = Array.isArray(o) ? o : [o, o];
+    const on = q.type === 'one' ? a[q.id] === v : (a[q.id] ?? []).includes(v);
+    return `<label class="chip-opt"><input type="${q.type === 'one' ? 'radio' : 'checkbox'}" name="q_${q.id}" value="${esc(v)}" ${on ? 'checked' : ''}><span>${esc(l)}</span></label>`;
+  }).join('')}</div></fieldset>`).join('')
+  + `<label>Anything else Nikesh should know?<textarea name="extra" rows="3" maxlength="600">${esc(a.extra ?? '')}</textarea></label>`;
+}
+function readAnswers() {
+  const a = {};
+  for (const q of QUESTIONS) {
+    const picked = [...aboutForm.querySelectorAll(`[name=q_${q.id}]:checked`)].map((x) => x.value);
+    if (q.type === 'one') { if (picked[0]) a[q.id] = picked[0]; } else if (picked.length) a[q.id] = picked;
+  }
+  if (aboutForm.extra.value.trim()) a.extra = aboutForm.extra.value.trim();
+  return a;
+}
+
+/* ---------- Hero + completeness ---------- */
+function completeness() {
+  const a = profile.answers ?? {};
+  const checks = [profile.full_name, profile.phone, profile.email, profile.birthday, profile.photo_path, a.pressure, a.areas?.length, a.goals?.length, a.styles?.length];
+  return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+}
+function paintHero() {
+  const first = (profile.full_name ?? '').trim().split(/\s+/)[0];
+  $('#hello').textContent = first ? `Hi, ${first}.` : 'Welcome';
+  $('#hero-sub').textContent = [profile.email, profile.phone].filter(Boolean).join(' · ') || 'Add your details below';
+  $('#avatar-initial').textContent = (first || '?')[0].toUpperCase();
+  const pct = completeness();
+  $('#meter-fill').style.width = pct + '%';
+  $('#meter-text').textContent = pct >= 100 ? 'Profile complete. Thank you!' : `${pct}% complete. A fuller profile helps Nikesh prepare for you.`;
+}
+async function paintAvatar() {
+  if (!profile.photo_path) return;
+  const { data } = await sb.storage.from('avatars').createSignedUrl(profile.photo_path, 3600);
+  if (data?.signedUrl) { const img = $('#avatar-img'); img.src = data.signedUrl; img.hidden = false; $('#avatar-initial').hidden = true; }
+}
+
+/* ---------- Photo upload (cropped square, 320px) ---------- */
+$('#avatar-btn').addEventListener('click', () => $('#avatar-file').click());
+$('#avatar-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const bmp = await createImageBitmap(file);
+    const size = Math.min(bmp.width, bmp.height), c = document.createElement('canvas');
+    c.width = c.height = 320;
+    c.getContext('2d').drawImage(bmp, (bmp.width - size) / 2, (bmp.height - size) / 2, size, size, 0, 0, 320, 320);
+    const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.86));
+    const path = `${user.id}/avatar.jpg`;
+    const up = await sb.storage.from('avatars').upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
+    if (up.error) throw up.error;
+    const { error } = await sb.from('profiles').update({ photo_path: path, updated_at: new Date().toISOString() }).eq('id', user.id);
+    if (error) throw error;
+    profile.photo_path = path;
+    await paintAvatar(); paintHero();
+  } catch (err) {
+    alert('That photo could not be saved: ' + (err.message ?? 'try a different picture.'));
+  }
+  e.target.value = '';
+});
+
+/* ---------- Save details (and change email) ---------- */
+profileForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const st = $('#profile-status'), f = profileForm;
+  if (!f.full_name.value.trim()) { say(st, 'Add your name so Nikesh knows who is coming.', true); f.full_name.focus(); return; }
+  say(st, 'Saving...');
+  const { error } = await sb.from('profiles').update({
+    full_name: f.full_name.value.trim(), phone: f.phone.value.trim() || null, birthday: f.birthday.value || null,
+    health_notes: f.health_notes.value.trim() || null, email_reminders: f.email_reminders.checked, sms_reminders: f.sms_reminders.checked,
+    updated_at: new Date().toISOString(),
+  }).eq('id', user.id);
+  if (error) return say(st, error.message, true);
+  Object.assign(profile, { full_name: f.full_name.value.trim(), phone: f.phone.value.trim(), birthday: f.birthday.value });
+  let note = 'Saved.';
+  const newEmail = f.email.value.trim();
+  if (newEmail && newEmail.toLowerCase() !== (user.email ?? '').toLowerCase()) {
+    const r = await sb.auth.updateUser({ email: newEmail });
+    if (r.error) return say(st, 'Details saved, but the email could not change: ' + r.error.message, true);
+    note = 'Saved. Check your inbox (old and new) to confirm the new email.';
+  }
+  say(st, note); paintHero();
+});
+
+aboutForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const st = $('#about-status'), answers = readAnswers();
+  say(st, 'Saving...');
+  const pref = ['light', 'medium', 'firm'].includes(answers.pressure) ? answers.pressure : null;
+  const { error } = await sb.from('profiles').update({ answers, pressure_pref: pref, onboarded_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', user.id);
+  if (error) return say(st, error.message, true);
+  profile.answers = answers; profile.onboarded_at = new Date().toISOString();
+  say(st, 'Saved. Nikesh will see this before your next visit.'); paintHero();
+  $('#about-sub').textContent = 'Saved. Tap to edit';
+});
+
+/* ---------- Visits + demo payment ---------- */
+const PRICE_LABEL = (p) => (p == null ? '' : '$' + Number(p));
+const paidDemo = new Set();
+let payFor = null, tipPct = 0;
+function visitsHtml(rows) {
+  if (!rows.length) return '<li class="empty">No visits yet. Book your first one and it shows up here.</li>';
+  return rows.map((a) => {
+    const upcoming = a.status === 'scheduled' && new Date(a.starts_at) > new Date();
+    const payable = (a.status === 'scheduled' || a.status === 'done') && a.price > 0 && !paidDemo.has(a.id);
+    return `<li class="visit ${esc(a.status)}"><div><b>${esc(fmt(a.starts_at))}</b><span>${esc(a.duration_min)} min ${esc(a.service)}${a.price ? ' · ' + PRICE_LABEL(a.price) : ''}</span></div>
+      <div class="visit-side"><span class="tag ${esc(a.status)}">${upcoming ? 'upcoming' : esc(a.status.replace('_', ' '))}</span>
+      ${paidDemo.has(a.id) ? '<span class="tag paid">paid (demo)</span>' : ''}
+      ${payable ? `<button class="btn small" type="button" data-pay="${a.id}">Pay</button>` : ''}
+      ${a.status === 'done' ? '<a class="btn small ghost" href="review.html">Review</a>' : ''}</div></li>`;
+  }).join('');
+}
+let visitRows = [];
+function paintVisits() {
+  const el = $('#appts'); el.removeAttribute('aria-busy'); el.innerHTML = visitsHtml(visitRows);
+  const up = visitRows.filter((a) => a.status === 'scheduled' && new Date(a.starts_at) > new Date()).length;
+  $('#visits-sub').textContent = up ? `${up} upcoming` : `${visitRows.length} past`;
+}
+document.addEventListener('click', (e) => {
+  const open = e.target.closest('[data-open]');
+  if (open) { const p = $('#p-' + open.dataset.open); p.open = true; p.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  const pay = e.target.closest('[data-pay]');
+  if (pay) {
+    payFor = visitRows.find((a) => String(a.id) === pay.dataset.pay); tipPct = 0;
+    document.querySelectorAll('#pay-tips button').forEach((b, i) => b.classList.toggle('on', i === 0));
+    $('#pay-what').textContent = `${payFor.duration_min} min ${payFor.service}`; setPayTotal();
+    $('#pay-form').hidden = false; $('#pay-done').hidden = true; $('#pay-modal').hidden = false;
+  }
+});
+const setPayTotal = () => {
+  const price = Number(payFor?.price ?? 0), tip = Math.round(price * tipPct) / 100;
+  $('#pay-go').textContent = `Pay $${(price + tip).toFixed(2)}${tip ? ` (includes $${tip.toFixed(2)} tip)` : ''}`;
+};
+$('#pay-tips').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  tipPct = Number(b.dataset.tip); document.querySelectorAll('#pay-tips button').forEach((x) => x.classList.toggle('on', x === b)); setPayTotal();
+});
+$('#pay-cancel').addEventListener('click', () => { $('#pay-modal').hidden = true; });
+$('#pay-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  $('#pay-go').disabled = true; $('#pay-go').textContent = 'Processing...';
+  setTimeout(() => { $('#pay-go').disabled = false; paidDemo.add(payFor.id); $('#pay-form').hidden = true; $('#pay-done').hidden = false; paintVisits(); }, 900);
+});
+$('#pay-ok').addEventListener('click', () => { $('#pay-modal').hidden = true; $('#pay-form').reset(); });
+
+/* ---------- Messages: list, open, delete ---------- */
+async function loadConvos() {
+  const { data } = await sb.from('messages').select('*').eq('customer_id', user.id).order('created_at', { ascending: false }).limit(200);
+  const msgs = data ?? [], last = msgs[0], unread = msgs.filter((m) => m.sender === 'admin' && !m.read_at).length;
+  const badge = $('#msg-badge'); badge.hidden = !unread; badge.textContent = unread;
+  $('#msg-sub').textContent = last ? 'Last message ' + new Date(last.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Chat with Nikesh';
+  $('#convos').innerHTML = `<li class="convo-row ${unread ? 'unread' : ''}">
+    <div class="avatar sm"><span>N</span></div>
+    <div class="convo-text"><b>Nikesh</b><span>${last ? esc(last.body.slice(0, 70)) : 'No messages yet. Say hello.'}</span></div>
+    <div class="convo-actions"><button class="btn small" type="button" id="chat-open">Open</button>
+    ${last ? '<button class="btn small ghost danger" type="button" id="chat-del">Delete</button>' : ''}</div></li>`;
+}
+document.addEventListener('click', async (e) => {
+  if (e.target.id === 'chat-open') {
+    $('#chat-wrap').hidden = false;
+    if (!chatCtl) chatCtl = mountChat($('#chat'), { customerId: user.id, me: 'customer', placeholder: 'Message Nikesh' });
+    $('#chat-wrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } else if (e.target.id === 'chat-close') {
+    $('#chat-wrap').hidden = true; loadConvos();
+  } else if (e.target.id === 'chat-del') {
+    if (!confirm('Delete this whole chat? This cannot be undone.')) return;
+    const { error } = await sb.from('messages').delete().eq('customer_id', user.id);
+    if (error) return alert('Could not delete: ' + error.message);
+    if (chatCtl) { chatCtl.destroy(); chatCtl = null; $('#chat').innerHTML = ''; }
+    $('#chat-wrap').hidden = true; loadConvos();
+  }
+});
+
+/* ---------- Loyalty points (ledger rows are written by the database, never the browser) ---------- */
+async function loadPoints() {
+  const { data, error } = await sb.from('loyalty_points').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(100);
+  const rows = error ? [] : (data ?? []);
+  const total = rows.reduce((n, r) => n + r.points, 0);
+  $('#points-total').textContent = error ? '0' : total.toLocaleString('en-US');
+  $('#points-sub').textContent = rows.length ? `${rows.length} entr${rows.length === 1 ? 'y' : 'ies'}` : 'Nothing yet';
+  $('#points-list').innerHTML = rows.length ? rows.map((r) => `<li><b>${r.points > 0 ? '+' : ''}${r.points}</b><span>${esc(r.reason)}</span><span class="c-sub" style="margin-left:auto">${esc(new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))}</span></li>`).join('')
+    : '<li class="empty">No points yet. They appear after a visit is completed and paid.</li>';
+}
+
+/* ---------- Requests & suggestions ---------- */
+async function loadIdeas() {
+  const { data } = await sb.from('suggestions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20);
+  $('#ideas').innerHTML = (data ?? []).map((s) => `<li><b>${esc(s.kind)}</b><span>${esc(s.body)}</span></li>`).join('');
+}
+$('#idea-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target, st = $('#idea-status'), body = f.body.value.trim();
+  if (!body) return say(st, 'Write a few words first.', true);
+  const { error } = await sb.from('suggestions').insert({ user_id: user.id, kind: f.kind.value, body });
+  if (error) return say(st, error.message, true);
+  f.body.value = ''; say(st, 'Sent. Thank you!'); loadIdeas();
+});
+
+/* ---------- Stretches ---------- */
+(() => {
+  const chips = $('#area-chips'), list = $('#stretch-list');
+  chips.innerHTML = STRETCHES.map((s, i) => `<button type="button" role="tab" class="chip-btn ${i === 0 ? 'on' : ''}" data-area="${i}">${s.icon} ${esc(s.area)}</button>`).join('');
+  const show = (i) => {
+    chips.querySelectorAll('.chip-btn').forEach((b) => b.classList.toggle('on', b.dataset.area == i));
+    list.innerHTML = STRETCHES[i].items.map((it) => `<article class="stretch"><h4>${esc(it.name)}</h4><span class="hold">${esc(it.hold)}</span><p>${esc(it.steps)}</p></article>`).join('');
+  };
+  chips.addEventListener('click', (e) => { const b = e.target.closest('.chip-btn'); if (b) show(b.dataset.area); });
+  $('#stretch-note').textContent = STRETCH_NOTE;
+  show(0);
+})();
+
+$('#sign-out').addEventListener('click', async () => { await sb.auth.signOut(); location.replace('./'); });
+
+/* ---------- Start ---------- */
 (async () => {
   user = await currentUser();
   if (!user) return location.replace('auth.html');
-  if (await isAdmin()) return location.replace('admin.html'); // the owner only uses the admin page
+  const admin = await isAdmin();
+  if (admin && !PREVIEW) return location.replace('admin.html'); // the owner uses the admin page
+  if (!admin && (await isStaff())) return location.replace('staff.html'); // front desk uses the staff page
+  if (admin) { $('#preview-bar').hidden = false; $('#back-admin').hidden = false; }
   document.querySelector('main').hidden = false;
-  mountChat(document.getElementById('chat'), { customerId: user.id, me: 'customer', placeholder: 'Message Nikesh' });
 
+  await sb.rpc('claim_guest_messages'); // chats Nikesh started before they had an account join their profile
   const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).single();
-  if (p) {
-    for (const k of ['full_name', 'phone', 'birthday', 'health_notes']) form[k].value = p[k] ?? '';
-    form.pressure_pref.value = p.pressure_pref ?? '';
-    form.email_reminders.checked = p.email_reminders;
-    form.sms_reminders.checked = p.sms_reminders;
-    if (p.full_name) document.getElementById('hello').textContent = `Hi, ${p.full_name.split(' ')[0]}.`;
-  }
+  profile = p ?? {};
+  // Auto-fill from what they gave at sign-up (name, phone, birthday can come from the account itself).
+  const meta = user.user_metadata ?? {};
+  profile.full_name ||= meta.full_name || meta.name || '';
+  profile.phone ||= meta.phone || '';
+  profile.birthday ||= meta.birthday || '';
+  profile.email ||= user.email || '';
+  for (const k of ['full_name', 'phone', 'birthday', 'health_notes', 'email']) profileForm[k].value = profile[k] ?? '';
+  profileForm.email_reminders.checked = profile.email_reminders ?? true;
+  profileForm.sms_reminders.checked = profile.sms_reminders ?? true;
+  drawQuestions(profile.answers ?? {});
+  paintHero(); paintAvatar();
 
-  const { data: appts } = await sb.rpc('my_appointments');
-  document.getElementById('appts').innerHTML = appts?.length
-    ? appts.map((a) => `<li><b>${esc(fmt(a.starts_at))}</b><span>${esc(a.duration_min)} min ${esc(a.service)}</span><span class="tag ${esc(a.status)}">${esc(a.status.replace('_', ' '))}</span></li>`).join('')
-    : '<li class="empty">No visits yet. Book your first one and it shows up here.</li>';
+  // First time here: lead with the short questionnaire.
+  if (!profile.onboarded_at) { $('#p-about').open = true; $('#about-sub').textContent = 'Takes about a minute'; $('#p-about').classList.add('nudge'); }
+  if (location.hash === '#book') { $('#p-book').open = true; setTimeout(() => $('#p-book').scrollIntoView({ behavior: 'smooth' }), 150); }
 
-  const { data: reqs } = await sb.from('booking_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
-  document.getElementById('requests').innerHTML = reqs?.length
+  const [{ data: appts }, { data: reqs }] = await Promise.all([
+    sb.rpc('my_appointments'),
+    sb.from('booking_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+  ]);
+  visitRows = appts ?? []; paintVisits();
+  $('#requests').innerHTML = reqs?.length
     ? reqs.map((r) => `<li><b>${esc(r.preferred_date)}${r.preferred_time ? ' ' + esc(r.preferred_time.slice(0, 5)) : ''}</b><span>${esc(r.service)}</span><span class="tag ${esc(r.status)}">${esc(r.status)}</span></li>`).join('')
     : '<li class="empty">No requests yet.</li>';
+  loadConvos(); loadIdeas(); loadPoints();
 })();
-
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  if (!form.full_name.value.trim()) {
-    status.className = 'status error'; status.textContent = 'Add your name so Nikesh knows who is coming.'; form.full_name.focus(); return;
-  }
-  const { error } = await sb.from('profiles').update({
-    full_name: form.full_name.value.trim(),
-    phone: form.phone.value.trim() || null,
-    birthday: form.birthday.value || null,
-    pressure_pref: form.pressure_pref.value || null,
-    health_notes: form.health_notes.value.trim() || null,
-    email_reminders: form.email_reminders.checked,
-    sms_reminders: form.sms_reminders.checked,
-    updated_at: new Date().toISOString(),
-  }).eq('id', user.id);
-  status.className = error ? 'status error' : 'status';
-  status.textContent = error ? error.message : 'Saved.';
-});
-
-document.getElementById('sign-out').addEventListener('click', async () => {
-  await sb.auth.signOut();
-  location.replace('./');
-});
+})();
 </script>
 <script src="header.js" defer></script>
 </body>

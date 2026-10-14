@@ -1,5 +1,52 @@
 # Handoff: what changed and how it all connects
 
+> ## READ FIRST: 2026-10-14 update (big)
+> A lot was added on 2026-10-14. **The code is pushed, but the database changes and edge functions are NOT applied to the live
+> Supabase project yet.** Until they are, parts of the live site degrade (see "Apply order"). Do not "fix" these by deleting
+> the new code; apply the migrations. If you are a Claude session starting up: read this whole section before touching anything.
+>
+> ### Apply order (Austin runs these, or says go ahead)
+> 1. `supabase db push` applies, in order: `20261014000000_staff_role.sql`, `20261014000100_profiles_tips_suggestions.sql`,
+>    `20261014000200_break_15_quarter_hours.sql`, `20261014000300_loyalty_points.sql`.
+> 2. Deploy functions with `--no-verify-jwt`: `calendar-feed`, `submit-review`, `calendar-connect`, `google-callback`, `calendar-push`.
+> 3. Add front-desk staff by SQL (example at the top of the staff migration).
+> 4. Google Calendar sign-in needs a Google Cloud OAuth client: set secrets `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, and add the
+>    redirect URI `<project-url>/functions/v1/google-callback`. Apple uses an app-specific password (no setup needed).
+> 5. If the database is still on the old rules, the browser now offers :15/:45 start times and a 15 minute break that the old server
+>    rejects (old rule: 20 min break, :00/:30 only). Migration `...000200` fixes that. Review submission also needs migration `...000100`.
+>
+> ### What was added (all in this repo)
+> | Area | Files | Notes |
+> |---|---|---|
+> | Moving clouds + footer account links | `index.html`, `styles.css` (`.sky`, `.foot-account`), `header.js` | Clouds drift across the whole sky; reduced-motion = static. Footer link mirrors the header link (Sign in / My account / Studio / Front desk). |
+> | **Staff (front desk) role** | `staff.html`, migration `...000000_staff_role.sql`, `supabase-client.js` (`isStaff()`), `account.html` redirect | Table `staff`, `is_staff()`. Staff: see/make/cancel appointments, mark done/no-show, tips, "charged on POS", basic client info (`staff_clients()`), set breaks. NO money totals, reviews, chat, private notes or health info. Admin can preview with `?preview=1`. |
+> | Admin (Studio) redesign | `admin.css` (desktop sidebar + 2 column cards, tips/likes/avatars, Settings sheet), `admin.html` | Desktop layout from 1000px. Phone layout unchanged. All `data-act`/`data-tab`/`p-*` ids kept. |
+> | Admin Settings (bottom-right button) | `admin-settings.js`, `admin.html` | Preview as customer / employee, "My profile", calendar links (webcal + Google), ICS import, connect Google/Apple accounts. |
+> | Customer profile rebuilt | `account.html`, `account.css`, `stretches.js` | Photo upload (private `avatars` bucket), questionnaire in `profiles.answers`, auto-fill from signup, change email/phone, requests and suggestions to Nikesh (`suggestions`), free stretches by body area, visits + DEMO payment (no real charge), messages list with delete, loyalty points card. **Booking form is built into this page** (same ids as the home page; `app.js` runs on both). |
+> | Inline booking links | `supabase-client.js` | Links with `data-book` on other pages go to `account.html#book` for signed-in customers. |
+> | Tips + POS | `admin.html`, `staff.html`, migration `...000100` | `appointments.tip`; payment method `pos`; "Charged on the POS" records a payment by hand. There is no live link to the Windows POS yet. |
+> | Reviews only for finished visits | `review.html`, `supabase/functions/submit-review`, migration `...000100` | Needs a signed-in user with an appointment `status='done'` (set by Nikesh/front desk), one review per visit (`reviews.appointment_id`). `reviewable_visits()` RPC. Nikesh still approves/hides in Studio. |
+> | Time off is public | `away.js`, `admin-timeoff.html`, migration `...000100` (`public_time_off()`, `away_auto_reply()` trigger) | Note shows in a banner on the home page and profile. A customer who chats while he is away gets ONE automatic reply (per 12h) with the reason and return date. |
+> | Days he is away / full never show in the booking calendar | `app.js` (`scanDays`, `freeStarts`, `isAway`) | Home page AND profile page. The calendar asks `busy_slots` for every open day and hides days with no free start time. The server (`slot_problem`) is still the real check. |
+> | Calendar picker for time off | `rangecal.js`, `styles.css` (`.rcal`), `admin-timeoff.html`, `staff.html` | One component: single day or range, marks existing time off. |
+> | Staff booking shows all time slots | `staff.html` (`renderSlots`) | Every start time for the picked day; taken ones greyed. Hard block on overlap, re-checked against fresh data before saving. |
+> | No double booking + 15 min break | `staff.html`, `app.js` (`BREAK=15`, `STEP=15`), migrations `...000100` (overlap trigger) and `...000200` | A session gets its full 60/90 min, then a 15 min break; starts on any quarter hour. Austin said both "15" and "50" minutes; **15 was chosen**. Confirm with him if unsure. |
+> | Chat with anyone | `chat.js` (`guestKey`), `admin.html`, migration `...000100` | Guests (no account) get a thread keyed `g:<phone digits or email>`; only Nikesh writes there. They merge into the account by VERIFIED email on login (`claim_guest_messages()`). Customers can delete their chat; messages auto-delete after 30 days (cron `chat-retention`). |
+> | Admin must re-enter password for Security | `account-security.html` | Admin accounts only, every time the page opens. |
+> | Real calendar connections | `supabase/functions/calendar-connect`, `google-callback`, `calendar-push`, migration `...000100` | Google (OAuth) and Apple (CalDAV app password) accounts; secrets stored encrypted in Supabase **Vault** (`calendar_connections` only holds a pointer). `calendar-push` writes/updates/removes events every 5 min (cron) or on "Sync now". `calendar-feed` now includes full client details in the event (secret URL). **These functions were written but never run or type-checked. Test them before relying on them.** |
+> | Loyalty points | migration `...000300`, `account.html`, `admin.html`, `staff.html` | Ledger `loyalty_points`. 1 point per dollar of session price, awarded by DB triggers only when the visit is `done` AND paid in full; taken back if un-done/unpaid. Owner can adjust per client in Studio. No reward menu yet (redeem = negative entry). |
+>
+> ### Still not built / open
+> - Customer emails (needs the studio domain + `RESEND_API_KEY`), SMS (Twilio).
+> - Direct integration with the Windows POS (two screens). Today POS payments are recorded by hand.
+> - Employee clock in/out for hours (planned to cover the POS too).
+> - Reward menu for loyalty points. Several separate chat threads per customer (today: one thread with Nikesh).
+>
+> ### Rules that still apply
+> Keep the ids/classes listed below, add a `.skeleton` loader for anything that loads after paint, never commit secrets. The old rule
+> "design only, never touch the backend" no longer holds: Austin asked for backend features directly, so backend changes are in
+> scope, but **never apply migrations or deploy functions without Austin saying so**.
+
 Read this first when you pull. It explains everything added to this repo on 2026-10-13/14 so you can keep
 working on **the look** without breaking **the backend**. (`CLAUDE.md` has the short version of the rules.)
 

@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Front desk | Namaste Nirvana</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="admin.css">
+<style>.preview-bar{background:var(--pine);color:var(--linen);text-align:center;padding:10px 16px;font-weight:600;font-size:.92rem}</style>
+</head>
+<body class="adm-body">
+<div class="preview-bar" id="preview-bar" hidden>You're previewing the employee view. Employees see exactly this (without money totals).</div>
+<header class="site-header">
+  <nav class="wrap nav" aria-label="Front desk">
+    <a class="logo" href="./">Namaste Nirvana</a>
+    <div class="nav-actions">
+      <button class="btn small ghost" id="sign-out" type="button">Sign out</button>
+    </div>
+  </nav>
+</header>
+
+<main class="adm" hidden>
+  <div class="adm-top">
+    <div><p class="adm-eyebrow" id="adm-date">Front desk</p><h1>Front desk</h1></div>
+  </div>
+
+  <div class="adm-stats" id="stats">
+    <div class="stat"><span class="skeleton"></span><span>Today</span></div>
+    <div class="stat"><span class="skeleton"></span><span>Upcoming</span></div>
+    <div class="stat"><span class="skeleton"></span><span>New requests</span></div>
+  </div>
+
+  <nav class="adm-tabs" role="tablist" aria-label="Sections">
+    <button type="button" role="tab" data-act="tab" data-tab="schedule" class="on">Schedule</button>
+    <button type="button" role="tab" data-act="tab" data-tab="new">New appointment</button>
+    <button type="button" role="tab" data-act="tab" data-tab="clients">Clients</button>
+    <button type="button" role="tab" data-act="tab" data-tab="breaks">Breaks</button>
+  </nav>
+
+  <section id="p-schedule" role="tabpanel"><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></section>
+
+  <section id="p-new" role="tabpanel" hidden>
+    <form class="a-card staff-form" id="new-appt" novalidate>
+      <h3 class="a-name">Book someone in</h3>
+      <label>Name<input name="name" required autocomplete="off"></label>
+      <div class="row">
+        <label>Phone<input name="phone" type="tel" required></label>
+        <label>Email <span class="opt">(optional)</span><input name="email" type="email"></label>
+      </div>
+      <div class="row">
+        <label>Massage
+          <select name="service"><option>Deep tissue</option><option>Swedish relaxation</option><option>Sports and recovery</option></select>
+        </label>
+        <label>Length
+          <select name="duration"><option value="60">60 min, $85</option><option value="90">90 min, $120</option></select>
+        </label>
+      </div>
+      <div class="row">
+        <div class="field" style="grid-column:1/-1">
+          <span class="field-label">Day <span class="opt">(days Nikesh is away are hidden)</span></span>
+          <input type="hidden" name="date">
+          <div id="appt-cal"></div>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <span class="field-label" id="slot-label">Time</span>
+          <input type="hidden" name="time">
+          <div class="slots" id="appt-slots" role="radiogroup" aria-labelledby="slot-label"><p class="slots-msg">Pick a day to see the open times.</p></div>
+          <p class="hint" id="slot-count"></p>
+        </div>
+      </div>
+      <fieldset class="addon-picks">
+        <legend>Add-ons <span class="opt">(optional)</span></legend>
+        <label class="check"><input type="checkbox" name="addon" value="Cupping"> Cupping, +$15</label>
+        <label class="check"><input type="checkbox" name="addon" value="TENS machine"> TENS machine, +$20</label>
+      </fieldset>
+      <button class="btn" type="submit">Add appointment</button>
+      <p class="status" id="new-status" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <section id="p-clients" role="tabpanel" hidden>
+    <div class="search"><input id="q" type="search" placeholder="Search by name, phone or email" autocomplete="off"></div>
+    <div id="client-list"><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></div>
+  </section>
+
+  <section id="p-breaks" role="tabpanel" hidden>
+    <form class="a-card staff-form" id="new-break" novalidate>
+      <h3 class="a-name">Set a break for Nikesh</h3>
+      <p class="a-meta">Nobody can book these times online while the break is on.</p>
+      <div class="field">
+        <span class="field-label">Which days?</span>
+        <input type="hidden" name="start"><input type="hidden" name="end">
+        <div id="break-cal"></div>
+      </div>
+      <label class="check"><input type="checkbox" name="partial"> Only part of the day</label>
+      <div class="row" id="break-times" hidden>
+        <label>Starting at<input name="from_time" type="time" step="900" value="12:00"></label>
+        <label>Back at<input name="to_time" type="time" step="900" value="13:00"></label>
+      </div>
+      <label>Note <span class="opt">(shown on the website)</span><input name="reason" maxlength="200" placeholder="Lunch, errand, vacation..."></label>
+      <button class="btn" type="submit">Block these times</button>
+      <p class="status" id="break-status" role="status" aria-live="polite"></p>
+    </form>
+    <div id="break-list"><div class="skeleton sk-card"></div></div>
+  </section>
+</main>
+
+<main class="wrap auth-page" id="denied" hidden>
+  <div class="auth-card"><h1>Not for you</h1><p class="lead">This page is only for studio staff.</p><a class="btn" href="./">Back to the site</a></div>
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="supabase-client.js"></script>
+<script src="rangecal.js"></script>
+<script>
+const TZ = 'America/New_York';
+const PRICES = { 60: 85, 90: 120 };
+const ADDON = { 'Cupping': 15, 'TENS machine': 20 };
+let HOURS = { 0: { open: 540, close: 1200 }, 1: { open: 540, close: 1200 } }; // minutes from midnight; replaced by opening_hours
+const BREAK = 15, STEP = 15;
+const S = { appts: [], reqs: [], off: [], clients: [], pay: {}, photos: {}, tab: 'schedule', when: 'upcoming', q: '' };
+const $ = (s) => document.querySelector(s);
+let breakCal, apptCal;
+
+const digits = (s) => String(s ?? '').replace(/\D/g, '');
+const intl = (p) => { const d = digits(p); return d.length === 10 ? '+1' + d : d.length === 11 && d[0] === '1' ? '+' + d : '+' + d; };
+const first = (n) => String(n ?? '').trim().split(/\s+/)[0] || 'there';
+const tzParts = (iso, o) => new Date(iso).toLocaleString('en-US', { timeZone: TZ, ...o });
+const clock = (iso) => tzParts(iso, { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+const longDay = (iso) => tzParts(iso, { weekday: 'long', month: 'short', day: 'numeric' });
+const dayKey = (iso) => new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ });
+const isUpcoming = (a) => a.status === 'scheduled' && new Date(a.starts_at).getTime() + a.duration_min * 60000 > Date.now();
+
+function shopTime(dateStr, hhmm) {
+  const [y, m, d] = dateStr.split('-').map(Number), [h, mi] = hhmm.split(':').map(Number);
+  const guess = Date.UTC(y, m - 1, d, h, mi);
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: TZ, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' })
+    .formatToParts(new Date(guess)).map((x) => [x.type, x.value]));
+  return new Date(guess - (Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - guess));
+}
+function toast(html, ms = 9000) {
+  const t = $('#toast');
+  t.innerHTML = html + '<div class="toast-row"><button class="act" type="button" data-act="toast-close">Close</button></div>';
+  t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, ms);
+}
+const must = (r) => { if (r.error) throw r.error; return r; };
+async function guard(fn) { try { await fn(); } catch (e) { toast(`<span>${esc(e.message ?? "That didn't work.")}</span>`); } }
+
+/* ---------- loading ---------- */
+async function load() {
+  const nowIso = new Date().toISOString();
+  const [appt, req, off, cl, pay, hrs] = await Promise.all([
+    sb.from('appointments').select('*').order('starts_at', { ascending: false }).limit(500),
+    sb.from('booking_requests').select('*').eq('status', 'new').order('created_at'),
+    sb.from('time_off').select('*').gte('ends_at', nowIso).order('starts_at'),
+    sb.rpc('staff_clients'),
+    sb.from('payments').select('appointment_id, amount').limit(3000),
+    sb.from('opening_hours').select('*'),
+  ]);
+  if (hrs.data?.length) HOURS = Object.fromEntries(hrs.data.map((h) => [h.weekday, { open: toMin(h.opens_at.slice(0, 5)), close: toMin(h.closes_at.slice(0, 5)) }]));
+  S.appts = appt.data ?? []; S.reqs = req.data ?? []; S.off = off.data ?? []; S.clients = cl.data ?? [];
+  S.pay = (pay.data ?? []).reduce((m, p) => ((m[p.appointment_id] = (m[p.appointment_id] ?? 0) + Number(p.amount)), m), {});
+  render();
+  loadPhotos();
+  syncCalendars();
+}
+
+async function loadPhotos() {
+  const paths = S.clients.map((c) => c.photo_path).filter((x) => x && !S.photos[x]);
+  if (!paths.length) return;
+  const { data } = await sb.storage.from('avatars').createSignedUrls(paths, 3600);
+  (data ?? []).forEach((d) => { if (d.signedUrl) S.photos[d.path] = d.signedUrl; });
+  if (data?.length) render();
+}
+const clientOf = (a) => (a.user_id ? S.clients.find((c) => c.id === a.user_id) : null);
+const likes = (c) => {
+  const x = c?.answers ?? {};
+  const bits = [c?.pressure_pref || x.pressure, ...(x.areas ?? []).slice(0, 3), ...(x.styles ?? []).slice(0, 1)].filter(Boolean);
+  return bits.length ? `<p class="likes">Likes: ${bits.map((b) => `<span>${esc(b)}</span>`).join('')}</p>` : '';
+};
+const mini = (c) => `<span class="mini-avatar">${c?.photo_path && S.photos[c.photo_path] ? `<img src="${esc(S.photos[c.photo_path])}" alt="">` : esc((c?.full_name || '?')[0].toUpperCase())}</span>`;
+
+const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+const niceTime = (m) => `${Math.floor(m / 60) % 12 || 12}:${String(m % 60).padStart(2, '0')} ${m < 720 ? 'am' : 'pm'}`;
+const closedDay = (iso) => !HOURS[new Date(`${iso}T12:00`).getDay()];
+
+// Every start time for the picked day: open ones are tappable, taken ones are greyed out so the whole day is visible.
+function renderSlots() {
+  const f = $('#new-appt'), box = $('#appt-slots'), day = f.date.value;
+  f.time.value = '';
+  if (!day) { box.innerHTML = '<p class="slots-msg">Pick a day to see the open times.</p>'; $('#slot-count').textContent = ''; return; }
+  const h = HOURS[new Date(`${day}T12:00`).getDay()];
+  if (!h) { box.innerHTML = '<p class="slots-msg">The studio is closed that day.</p>'; $('#slot-count').textContent = ''; return; }
+  const dur = Number(f.duration.value), now = Date.now(), live = S.appts.filter((a) => a.status === 'scheduled');
+  let open = 0, html = '';
+  for (let m = h.open; m + dur <= h.close; m += STEP) {
+    const start = shopTime(day, hhmm(m)).getTime(), end = start + dur * 60000;
+    const why = start <= now ? 'past'
+      : S.off.some((t) => new Date(t.starts_at) < end && new Date(t.ends_at) > start) ? 'break'
+      : live.some((a) => { const as = new Date(a.starts_at).getTime(); return as < end + BREAK * 60000 && as + (a.duration_min + BREAK) * 60000 > start; }) ? 'booked' : '';
+    if (!why) open++;
+    html += `<button type="button" class="chip ${why ? 'taken' : ''}" role="radio" aria-checked="false" data-start="${hhmm(m)}" ${why ? 'disabled' : ''} title="${why === 'booked' ? 'Already booked' : why === 'break' ? 'Nikesh has a break' : why === 'past' ? 'Already passed' : 'Open'}">${niceTime(m)}</button>`;
+  }
+  box.innerHTML = html || '<p class="slots-msg">No times fit that length.</p>';
+  $('#slot-count').textContent = html ? (open ? `${open} open time${open === 1 ? '' : 's'} on ${longDay(shopTime(day, '12:00').toISOString())}. Greyed times are taken.` : 'Fully booked that day. Pick another.') : '';
+}
+$('#appt-slots').addEventListener('click', (e) => {
+  const c = e.target.closest('.chip'); if (!c || c.disabled) return;
+  document.querySelectorAll('#appt-slots .chip').forEach((x) => { x.classList.toggle('on', x === c); x.setAttribute('aria-checked', x === c); });
+  $('#new-appt').time.value = c.dataset.start;
+});
+$('#new-appt').duration.addEventListener('change', renderSlots);
+
+// Days covered by time off (shop time), used to mark the break calendar and hide away days when booking.
+const offDays = () => new Set(S.off.flatMap((t) => { const out = [], last = new Date(new Date(t.ends_at).getTime() - 1); for (let d = new Date(t.starts_at); d <= last; d = new Date(d.getTime() + 864e5)) out.push(dayKey(d.toISOString())); return out; }));
+const wholeDayOff = (iso) => S.off.some((t) => new Date(t.starts_at) <= shopTime(iso, '00:00') && new Date(t.ends_at) >= shopTime(iso, '23:59'));
+function syncCalendars() {
+  breakCal ??= mountRangeCal($('#break-cal'), { startInput: $('#new-break').start, endInput: $('#new-break').end });
+  apptCal ??= mountRangeCal($('#appt-cal'), { startInput: $('#new-appt').date, mode: 'single', blocked: (iso) => wholeDayOff(iso) || closedDay(iso), onChange: renderSlots });
+  breakCal.setMarked(offDays()); apptCal.setBlocked((iso) => wholeDayOff(iso) || closedDay(iso));
+  if ($('#new-appt').date.value) renderSlots(); // keep the day's times fresh after a save or reload
+}
+
+/* ---------- schedule ---------- */
+function apptCard(a) {
+  const msg = `Hi ${first(a.client_name)}, this is Namaste Nirvana about your ${a.duration_min} min massage on ${longDay(a.starts_at)} at ${clock(a.starts_at)}: `;
+  const sms = `sms:${intl(a.client_phone)}?&body=${encodeURIComponent(msg)}`;
+  return `<article class="a-card">
+    <div class="a-top"><b class="a-time">${esc(clock(a.starts_at))}</b><span class="c-sub">${esc(a.duration_min)} min</span><span class="tag ${esc(a.status)}">${esc(a.status.replace('_', ' '))}</span></div>
+    <h3 class="a-name">${clientOf(a) ? mini(clientOf(a)) : ''}${esc(a.client_name)}</h3>
+    <p class="a-meta">${esc(a.service)}${a.addons?.length ? ' · ' + esc(a.addons.join(', ')) : ''}${Number(a.tip) > 0 ? ' · tip $' + Number(a.tip) : ''}</p>
+    ${likes(clientOf(a))}
+    <div class="acts">
+      ${a.client_phone ? `<a class="act main" href="tel:${esc(intl(a.client_phone))}">Call</a><a class="act" href="${esc(sms)}">Text</a>` : ''}
+      ${a.status === 'scheduled' ? `<button class="act main" type="button" data-act="done" data-id="${a.id}">Showed up: mark done</button><button class="act" type="button" data-act="noshow" data-id="${a.id}">No-show</button><button class="act danger" type="button" data-act="cancel" data-id="${a.id}">Cancel</button>` : ''}
+    </div>
+    ${a.status !== 'cancelled' && a.status !== 'no_show' ? `<details class="more"><summary>Tip and payment</summary><div class="more-body">
+      <form class="mini-form" data-tip="${a.id}"><input name="tip" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Tip amount" value="${Number(a.tip) > 0 ? a.tip : ''}"><button class="act" type="submit">Save tip</button></form>
+      <div class="acts"><button class="act main" type="button" data-act="pos" data-id="${a.id}">Charged on the POS</button></div>
+    </div></details>` : ''}
+  </article>`;
+}
+function reqCard(r) {
+  return `<article class="a-card attn">
+    <div class="a-top"><b>New request</b><span class="tag">${esc(longDay(r.preferred_date + 'T12:00:00Z'))}</span></div>
+    <h3 class="a-name">${esc(r.name)}</h3>
+    <p class="a-meta">${esc(r.service)} · ${esc(r.duration_min)} min${r.preferred_time ? ' · ' + esc(String(r.preferred_time).slice(0, 5)) : ''}</p>
+    <div class="acts"><a class="act main" href="tel:${esc(intl(r.phone))}">Call</a></div>
+    <p class="c-sub">Online requests are confirmed automatically when the time is free. If one is stuck here, call the client.</p>
+  </article>`;
+}
+function renderSchedule() {
+  const list = S.appts.filter((a) => S.when === 'upcoming' ? isUpcoming(a) : !isUpcoming(a)).sort((a, b) => S.when === 'upcoming' ? a.starts_at.localeCompare(b.starts_at) : b.starts_at.localeCompare(a.starts_at));
+  let html = S.reqs.map(reqCard).join('') + `<div class="seg">
+    <button type="button" data-act="when" data-when="upcoming" class="${S.when === 'upcoming' ? 'on' : ''}">Upcoming</button>
+    <button type="button" data-act="when" data-when="past" class="${S.when === 'past' ? 'on' : ''}">Past</button></div>`;
+  if (!list.length) html += '<div class="empty-card">Nothing here yet.</div>';
+  let day = '';
+  for (const a of list.slice(0, 120)) {
+    const k = dayKey(a.starts_at);
+    if (k !== day) { day = k; html += `<h2 class="day-head">${esc(longDay(a.starts_at))}</h2>`; }
+    html += apptCard(a);
+  }
+  $('#p-schedule').innerHTML = html;
+}
+
+/* ---------- clients ---------- */
+function renderClients() {
+  const q = S.q.trim().toLowerCase();
+  const rows = S.clients.filter((c) => !q || [c.full_name, c.phone, c.email].some((v) => String(v ?? '').toLowerCase().includes(q)));
+  $('#client-list').innerHTML = rows.length ? rows.map((c) => `<article class="a-card">
+    <h3 class="a-name">${esc(c.full_name || 'No name yet')}</h3>
+    <p class="a-meta">${esc(c.phone || 'No phone')}${c.email ? ' · ' + esc(c.email) : ''}</p>
+    <div class="acts">${c.phone ? `<a class="act main" href="tel:${esc(intl(c.phone))}">Call</a>` : ''}${c.email ? `<a class="act" href="mailto:${esc(c.email)}">Email</a>` : ''}</div>
+  </article>`).join('') : '<div class="empty-card">No clients match.</div>';
+}
+
+/* ---------- breaks ---------- */
+function rangeText(t) {
+  const whole = clock(t.starts_at) === '12:00 am' && clock(t.ends_at) === '12:00 am';
+  if (whole) {
+    const last = new Date(new Date(t.ends_at).getTime() - 1).toISOString();
+    return dayKey(t.starts_at) === dayKey(last) ? longDay(t.starts_at) : `${longDay(t.starts_at)} to ${longDay(last)}`;
+  }
+  return `${longDay(t.starts_at)}, ${clock(t.starts_at)} to ${dayKey(t.starts_at) === dayKey(t.ends_at) ? '' : longDay(t.ends_at) + ', '}${clock(t.ends_at)}`;
+}
+function renderBreaks() {
+  $('#break-list').innerHTML = S.off.length ? S.off.map((t) => `<article class="a-card"><h3 class="a-name">${esc(rangeText(t))}</h3>
+    ${t.reason ? `<p class="a-meta">${esc(t.reason)}</p>` : ''}
+    <div class="acts"><button class="act danger" type="button" data-act="off-del" data-id="${t.id}">Remove</button></div></article>`).join('')
+    : '<div class="empty-card">No breaks planned.</div>';
+}
+
+function render() {
+  const today = dayKey(new Date().toISOString());
+  const stats = [['Today', S.appts.filter((a) => a.status !== 'cancelled' && dayKey(a.starts_at) === today).length], ['Upcoming', S.appts.filter(isUpcoming).length], ['New requests', S.reqs.length]];
+  $('#stats').innerHTML = stats.map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
+  document.querySelectorAll('.adm-tabs button').forEach((b) => { b.classList.toggle('on', b.dataset.tab === S.tab); b.setAttribute('aria-selected', b.dataset.tab === S.tab); });
+  for (const t of ['schedule', 'new', 'clients', 'breaks']) $(`#p-${t}`).hidden = t !== S.tab;
+  if (S.tab === 'schedule') renderSchedule(); else if (S.tab === 'clients') renderClients(); else if (S.tab === 'breaks') renderBreaks();
+}
+
+/* ---------- actions ---------- */
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const { act, id } = el.dataset;
+  guard(async () => {
+    if (act === 'tab') { S.tab = el.dataset.tab; render(); window.scrollTo({ top: 0 }); }
+    else if (act === 'when') { S.when = el.dataset.when; renderSchedule(); }
+    else if (act === 'toast-close') $('#toast').hidden = true;
+    else if (act === 'cancel') {
+      const a = S.appts.find((x) => x.id == id);
+      if (!confirm(`Cancel ${a.client_name}'s appointment on ${longDay(a.starts_at)} at ${clock(a.starts_at)}?`)) return;
+      must(await sb.from('appointments').update({ status: 'cancelled' }).eq('id', id));
+      await load();
+      const m = `Hi ${first(a.client_name)}, this is Namaste Nirvana. We need to cancel your massage on ${longDay(a.starts_at)} at ${clock(a.starts_at)}. Please rebook at ${SITE_BASE}#book or call (802) 373-9672.`;
+      toast(`<span>Cancelled. Let ${esc(first(a.client_name))} know:</span><div class="toast-row">${a.client_phone ? `<a class="act" href="${esc(`sms:${intl(a.client_phone)}?&body=${encodeURIComponent(m)}`)}">Text</a>` : ''}</div>`, 30000);
+    }
+    else if (act === 'done' || act === 'noshow') {
+      const a = S.appts.find((x) => x.id == id);
+      const q = act === 'done' ? `Mark ${a.client_name}'s visit as done? Only do this if they came. Loyalty points are added once it is also paid.` : `Mark ${a.client_name} as a no-show?`;
+      if (!confirm(q)) return;
+      must(await sb.from('appointments').update({ status: act === 'done' ? 'done' : 'no_show' }).eq('id', id));
+      await load();
+    }
+    else if (act === 'pos') {
+      const a = S.appts.find((x) => x.id == id), due = Number(a.price ?? 0) + Number(a.tip ?? 0) - (S.pay[a.id] ?? 0);
+      if (!(due > 0)) throw new Error('Nothing left to charge.');
+      if (!confirm(`Record $${due.toFixed(2)} as paid on the POS for ${a.client_name}?`)) return;
+      must(await sb.from('payments').insert({ appointment_id: a.id, amount: due, method: 'pos' }));
+      toast('<span>Recorded. Thank you!</span>'); await load();
+    }
+    else if (act === 'off-del') {
+      if (!confirm('Remove this break? Those times become bookable again.')) return;
+      must(await sb.from('time_off').delete().eq('id', id)); await load();
+    }
+  });
+});
+
+document.addEventListener('submit', (e) => {
+  const f = e.target;
+  if (!f.dataset.tip) return;
+  e.preventDefault();
+  guard(async () => {
+    const tip = Number(f.tip.value || 0);
+    if (!(tip >= 0)) throw new Error('Enter a tip amount.');
+    must(await sb.from('appointments').update({ tip }).eq('id', Number(f.dataset.tip)));
+    await load();
+  });
+});
+
+$('#q').addEventListener('input', (e) => { S.q = e.target.value; renderClients(); });
+
+$('#new-appt').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const f = e.target, st = $('#new-status');
+  guard(async () => {
+    if (!f.name.value.trim() || !f.phone.value.trim() || !f.date.value || !f.time.value) { st.textContent = 'Fill in name and phone, then pick a day and a time.'; st.className = 'status error'; return; }
+    const dur = Number(f.duration.value), start = shopTime(f.date.value, f.time.value), end = new Date(start.getTime() + dur * 60000);
+    const addons = [...f.querySelectorAll('[name=addon]:checked')].map((x) => x.value);
+    // Check against fresh data (not the page's copy) so a time taken a moment ago can never be booked twice.
+    st.className = 'status'; st.textContent = 'Checking the time...';
+    const { data: fresh, error: fe } = await sb.from('appointments').select('client_name, starts_at, duration_min')
+      .eq('status', 'scheduled').gte('starts_at', new Date(start.getTime() - 86400e3).toISOString()).lt('starts_at', new Date(end.getTime() + 86400e3).toISOString());
+    if (fe) throw fe;
+    const clash = (fresh ?? []).find((a) => new Date(a.starts_at) < new Date(end.getTime() + BREAK * 60000) && new Date(new Date(a.starts_at).getTime() + (a.duration_min + BREAK) * 60000) > start);
+    if (clash) { st.className = 'status error'; st.textContent = `That time is taken: ${clash.client_name} is booked at ${clock(clash.starts_at)} (plus a ${BREAK} minute break). Pick another time.`; await load(); return; }
+    const off = S.off.find((t) => new Date(t.starts_at) < end && new Date(t.ends_at) > start);
+    if (off) { st.className = 'status error'; st.textContent = 'Nikesh has a break then. Pick another time.'; return; }
+    st.textContent = 'Saving...';
+    must(await sb.from('appointments').insert({
+      client_name: f.name.value.trim(), client_phone: f.phone.value.trim(), client_email: f.email.value.trim() || null,
+      service: f.service.value, starts_at: start.toISOString(), duration_min: dur,
+      price: PRICES[dur] + addons.reduce((n, x) => n + (ADDON[x] ?? 0), 0), addons,
+    }));
+    const day = f.date.value; f.reset(); f.date.value = day; // stay on the day so the booked time visibly disappears
+    st.textContent = 'Added. That time is now taken.';
+    await load();
+  });
+});
+
+$('#new-break').addEventListener('change', (e) => { if (e.target.name === 'partial') $('#break-times').hidden = !e.target.checked; });
+$('#new-break').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const f = e.target, st = $('#break-status');
+  guard(async () => {
+    if (!f.start.value) { st.textContent = 'Pick a day.'; st.className = 'status error'; return; }
+    const endDay = f.end.value || f.start.value;
+    if (endDay < f.start.value) { st.textContent = 'The end day is before the start.'; st.className = 'status error'; return; }
+    let a, b;
+    if (f.partial.checked) { a = shopTime(f.start.value, f.from_time.value); b = shopTime(endDay, f.to_time.value); }
+    else { a = shopTime(f.start.value, '00:00'); const n = new Date(endDay + 'T12:00:00Z'); n.setUTCDate(n.getUTCDate() + 1); b = shopTime(n.toISOString().slice(0, 10), '00:00'); }
+    if (b <= a) { st.textContent = 'The end must be after the start.'; st.className = 'status error'; return; }
+    st.className = 'status'; st.textContent = 'Saving...';
+    must(await sb.from('time_off').insert({ starts_at: a.toISOString(), ends_at: b.toISOString(), reason: f.reason.value.trim() || null }));
+    f.reset(); breakCal?.clear(); $('#break-times').hidden = true; st.textContent = 'Break set.';
+    await load();
+  });
+});
+
+document.getElementById('sign-out').addEventListener('click', async () => { await sb.auth.signOut(); location.replace('./'); });
+
+(async () => {
+  const u = await currentUser();
+  if (!u) return location.replace('auth.html');
+  const admin = await isAdmin(), preview = new URLSearchParams(location.search).has('preview');
+  if (admin && !preview) return location.replace('admin.html');
+  if (admin) { $('#preview-bar').hidden = false; }
+  else if (!(await isStaff())) return location.replace('account.html');
+  $('main.adm').hidden = false;
+  load();
+})();
+</script>
+<script src="header.js" defer></script>
+</body>
+</html>

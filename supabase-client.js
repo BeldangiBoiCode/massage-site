@@ -17,10 +17,23 @@ async function isAdmin() {
   return data === true;
 }
 
-// Swap the header "Sign in" link to "My account" when signed in.
+// Front-desk staff (table `staff`). Returns false if the staff migration is not applied yet.
+async function isStaff() {
+  const { data } = await sb.rpc('is_staff');
+  return data === true;
+}
+
+// Signed in: swap the header "Sign in" link for the right area, and send "Book" buttons on other pages
+// to the customer's own profile (it has the booking form built in), so nobody goes back to the home page.
 currentUser().then(async (u) => {
+  if (!u) return;
   const link = document.getElementById('account-link');
-  if (!u || !link) return;
-  link.textContent = 'My account'; link.href = 'account.html';
-  if (await isAdmin()) { link.textContent = 'Studio'; link.href = 'admin.html'; }
+  const admin = await isAdmin();
+  const staff = !admin && (await isStaff());
+  if (link) {
+    link.textContent = 'My account'; link.href = 'account.html';
+    if (admin) { link.textContent = 'Studio'; link.href = 'admin.html'; }
+    else if (staff) { link.textContent = 'Front desk'; link.href = 'staff.html'; }
+  }
+  if (!admin && !staff) document.querySelectorAll('[data-book]').forEach((a) => { a.href = 'account.html#book'; });
 });

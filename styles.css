@@ -412,23 +412,41 @@ body { background: linear-gradient(140deg, var(--blush) 0%, #F1E7F2 45%, var(--s
 @media (max-width: 1040px) { .nav ul { display: none; } }
 @media (max-width: 480px) { .nav .logo { font-size: 1.25rem; } .nav-actions .btn { padding: 8px 12px; } }
 
-/* Side scenery: clouds up top, trees at the bottom, both edges. Decorative only. */
+/* Side scenery: trees at the bottom of both edges. Decorative only. */
 body::before, body::after {
   content: ""; position: fixed; top: 0; bottom: 0; z-index: -1; pointer-events: none;
   width: clamp(110px, calc((100vw - 1140px) / 2 + 30px), 280px);
-  background:
-    url("decor/cloud.svg") no-repeat 20% 14% / 78% auto,
-    url("decor/cloud.svg") no-repeat 85% 34% / 52% auto,
-    url("decor/trees.svg") no-repeat bottom left / 100% auto;
-  animation: drift 26s ease-in-out infinite alternate;
+  background: url("decor/trees.svg") no-repeat bottom left / 100% auto;
 }
 body::before { left: 0; }
-body::after { right: 0; transform: scaleX(-1); animation-delay: -13s; }
-@keyframes drift {
-  from { background-position: 14% 14%, 92% 34%, bottom left; }
-  to   { background-position: 30% 14%, 74% 34%, bottom left; }
-}
+body::after { right: 0; transform: scaleX(-1); }
 @media (max-width: 1100px) { body::before, body::after { opacity: .45; } }
+
+/* Moving clouds: slow drift across the whole sky, each at its own height, size and speed. Decorative only. */
+.sky { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.sky i {
+  position: absolute; left: 0; top: var(--y); width: var(--w); aspect-ratio: 2.2;
+  background: url("decor/cloud.svg") no-repeat center / contain;
+  opacity: var(--o); filter: blur(var(--b, 0px));
+  transform: translate3d(-40vw, 0, 0);
+  animation: cloud-pass var(--t) linear var(--d) infinite;
+  will-change: transform;
+}
+.sky i:nth-child(1) { --y: 6%;  --w: 260px; --o: .85; --t: 140s; --d: -20s; }
+.sky i:nth-child(2) { --y: 17%; --w: 170px; --o: .6;  --t: 190s; --d: -120s; --b: 1px; }
+.sky i:nth-child(3) { --y: 30%; --w: 320px; --o: .7;  --t: 165s; --d: -70s; }
+.sky i:nth-child(4) { --y: 46%; --w: 200px; --o: .5;  --t: 210s; --d: -160s; --b: 1px; }
+.sky i:nth-child(5) { --y: 60%; --w: 280px; --o: .55; --t: 175s; --d: -40s; }
+.sky i:nth-child(6) { --y: 11%; --w: 140px; --o: .45; --t: 230s; --d: -190s; --b: 2px; }
+.sky i:nth-child(7) { --y: 74%; --w: 230px; --o: .4;  --t: 200s; --d: -100s; --b: 2px; }
+@keyframes cloud-pass { to { transform: translate3d(calc(100vw + 40vw), 0, 0); } }
+@media (max-width: 760px) { .sky i { width: calc(var(--w) * .6); } }
+@media (prefers-reduced-motion: reduce) { .sky i { animation: none; transform: none; left: calc(var(--y) * 10); } }
+
+/* Footer account links */
+.foot-account { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px 22px; padding-top: 6px; }
+.foot-account a { font-weight: 600; text-decoration: none; color: var(--pine); border-bottom: 1.5px solid var(--sea-glass); padding-bottom: 1px; }
+.foot-account a:hover { border-color: var(--eucalyptus); color: var(--eucalyptus); }
 
 /* Header spans the full width: links hug the left edge, Book hugs the right */
 .site-header .nav { max-width: none; padding: 0 clamp(20px, 3vw, 48px); }
@@ -436,3 +454,17 @@ body::after { right: 0; transform: scaleX(-1); animation-delay: -13s; }
 /* Solid header once scrolled */
 .site-header { transition: background .25s ease, box-shadow .25s ease, backdrop-filter .25s ease; }
 .site-header.scrolled { background: #FBF4F7; backdrop-filter: none; box-shadow: 0 6px 20px rgb(30 59 53 / .08); }
+
+/* Time-off notice (away.js) */
+.away-bar { background: #FFF4D6; color: #5E4A0C; border-bottom: 1px solid #F0DDA2; padding: 10px 20px; text-align: center; font-size: .95rem; display: grid; gap: 2px; }
+.away-bar p { margin: 0 auto; max-width: 90ch; }
+
+/* Range calendar (time off, breaks, staff bookings) */
+.rcal .cal-week, .rcal .cal-grid { --cols: 7; }
+.rcal .day.in-range { background: color-mix(in srgb, var(--eucalyptus) 28%, var(--linen)); color: var(--pine); border-radius: 6px; }
+.rcal .day.edge { background: var(--pine); color: var(--linen); border-radius: 12px; box-shadow: 0 8px 16px -8px rgb(30 59 53 / .7); }
+.rcal .day.off:not(.edge) { background: repeating-linear-gradient(135deg, #F3E7C4 0 6px, var(--linen) 6px 12px); }
+.rcal-sum { margin: 10px 2px 0; font-weight: 600; color: var(--pine); min-height: 1.5em; }
+.rcal-key { margin: 4px 2px 0; font-size: .82rem; color: var(--stone); display: flex; align-items: center; gap: 6px; }
+.rcal-key i { width: 14px; height: 14px; border-radius: 4px; background: repeating-linear-gradient(135deg, #F3E7C4 0 4px, var(--linen) 4px 8px); }
+.chip.taken, .chip:disabled { opacity: .35; text-decoration: line-through; cursor: not-allowed; }

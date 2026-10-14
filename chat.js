@@ -1,7 +1,8 @@
 // Chat thread between one customer account and Nikesh. Used by account.html (me = 'customer')
 // and admin.html (me = 'admin'). Live updates through Supabase Realtime, with a slow poll as a safety net.
 // RLS decides who can read or write; this file only draws the thread.
-function mountChat(root, { customerId, me, placeholder }) {
+function mountChat(root, { customerId, guestKey, me, placeholder }) {
+  const col = guestKey ? 'guest_key' : 'customer_id', val = guestKey ?? customerId; // guest threads are keyed by phone/email
   const other = me === 'admin' ? 'customer' : 'admin';
   root.classList.add('chat');
   root.innerHTML = `
@@ -45,7 +46,7 @@ function mountChat(root, { customerId, me, placeholder }) {
   }
 
   async function load() {
-    const { data, error } = await sb.from('messages').select('*').eq('customer_id', customerId).order('created_at').limit(300);
+    const { data, error } = await sb.from('messages').select('*').eq(col, val).order('created_at').limit(300);
     if (error) { log.innerHTML = '<p class="chat-empty">Messages couldn\'t load. Try refreshing.</p>'; return; }
     msgs = data ?? [];
     render();
@@ -58,7 +59,7 @@ function mountChat(root, { customerId, me, placeholder }) {
     if (!body || sending) return;
     sending = true; err.hidden = true;
     form.querySelector('button').disabled = true;
-    const { data, error } = await sb.from('messages').insert({ customer_id: customerId, sender: me, body }).select().single();
+    const { data, error } = await sb.from('messages').insert({ [col]: val, sender: me, body }).select().single();
     sending = false;
     form.querySelector('button').disabled = false;
     if (error) { err.textContent = error.message || 'That didn\'t send. Try again.'; err.hidden = false; return; }
@@ -70,8 +71,8 @@ function mountChat(root, { customerId, me, placeholder }) {
   ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !matchMedia('(pointer: coarse)').matches) { e.preventDefault(); form.requestSubmit(); } });
   ta.addEventListener('input', () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 140) + 'px'; });
 
-  channel = sb.channel(`chat-${me}-${customerId}`)
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `customer_id=eq.${customerId}` }, (p) => {
+  channel = sb.channel(`chat-${me}-${val}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `${col}=eq.${val}` }, (p) => {
       if (msgs.some((m) => m.id === p.new.id)) return;
       msgs.push(p.new); render();
       if (p.new.sender === other) { markRead(); root.dispatchEvent(new CustomEvent('chat:new')); }

@@ -22,6 +22,17 @@
   </nav>
 </header>
 
+<main class="wrap auth-page" id="unlock" hidden>
+  <form class="auth-card" id="unlock-form" novalidate>
+    <h1>Confirm it's you</h1>
+    <p class="lead">Enter your password to open login and security.</p>
+    <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+    <button class="btn" type="submit">Unlock</button>
+    <p class="status" id="unlock-status" role="status" aria-live="polite"></p>
+    <p class="auth-note">Signed in with Google or Apple and no password yet? <a href="forgot-password.html">Set one here</a>.</p>
+  </form>
+</main>
+
 <main class="wrap auth-page" id="page" hidden>
   <div class="auth-card wide">
     <h1>Login and security</h1>
@@ -64,8 +75,21 @@ requireUser().then((user) => {
   const methods = (user.app_metadata?.providers ?? []).map((p) => ({ email: 'email', google: 'Google', apple: 'Apple' }[p] ?? p));
   document.getElementById('summary').textContent =
     `Signed in as ${user.email}. Sign-in methods: ${methods.length ? methods.join(', ') : 'email'}.`;
-  document.getElementById('page').hidden = false;
-  isAdmin().then((yes) => { if (yes) { const h = document.getElementById('home-link'); h.href = 'admin.html'; h.textContent = 'Studio'; } });
+  // The owner's account must enter the password again every time this page opens.
+  isAdmin().then((yes) => {
+    if (!yes) { document.getElementById('page').hidden = false; return; }
+    const h = document.getElementById('home-link'); h.href = 'admin.html'; h.textContent = 'Studio';
+    const gate = document.getElementById('unlock'), gf = document.getElementById('unlock-form'), gs = document.getElementById('unlock-status');
+    gate.hidden = false; gf.password.focus();
+    gf.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!gf.password.value) { gs.className = 'status error'; gs.textContent = 'Enter your password.'; return; }
+      gs.className = 'status'; gs.textContent = 'Checking...';
+      const { error } = await sb.auth.signInWithPassword({ email: user.email, password: gf.password.value });
+      if (error) { gs.className = 'status error'; gs.textContent = 'That password is not right.'; gf.password.select(); return; }
+      gf.password.value = ''; gate.hidden = true; document.getElementById('page').hidden = false;
+    });
+  });
 });
 
 emailForm.addEventListener('submit', (e) => {

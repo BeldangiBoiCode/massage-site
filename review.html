@@ -15,7 +15,7 @@
 <header class="site-header">
   <nav class="wrap nav" aria-label="Main">
     <a class="logo" href="./">Namaste Nirvana</a>
-    <a class="btn small" href="./#book">Book</a>
+    <a class="btn small" href="./#book" data-book>Book</a>
   </nav>
 </header>
 
@@ -26,7 +26,10 @@
       <p class="lead">Your words help others decide, and help Nikesh keep improving. It takes a minute.</p>
     </div>
 
-    <form id="review" novalidate>
+    <div id="gate" class="review-gate"><div class="skeleton skeleton-block" style="height:120px"></div></div>
+    <form id="review" novalidate hidden>
+      <input type="hidden" name="appointment_id">
+      <label id="visit-pick" hidden>Which visit?<select name="visit"></select></label>
       <div class="field">
         <span class="field-label" id="rating-label">Your rating</span>
         <div class="stars" role="radiogroup" aria-labelledby="rating-label">
@@ -92,12 +95,32 @@ form.querySelectorAll('input[name=rating]').forEach((r) =>
   r.addEventListener('change', () => { document.getElementById('star-hint').textContent = HINTS[r.value]; }));
 form.body.addEventListener('input', () => { document.getElementById('count').textContent = form.body.value.length; });
 
-// Prefill the name when signed in.
-currentUser().then(async (u) => {
-  if (!u) return;
+// Only customers with a visit Nikesh marked done can review. Everyone else sees why.
+const gate = document.getElementById('gate');
+let visits = [];
+const visitText = (v) => `${new Date(v.starts_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · ${v.duration_min} min ${v.service}`;
+const setVisit = () => {
+  const v = visits.find((x) => String(x.id) === form.visit.value) ?? visits[0];
+  form.appointment_id.value = v.id;
+  if ([...form.service.options].some((o) => o.value === v.service)) form.service.value = v.service;
+};
+(async () => {
+  const u = await currentUser();
+  if (!u) { gate.innerHTML = '<p class="lead">Reviews come from real clients. Sign in to review a finished visit.</p><a class="btn" href="auth.html">Sign in</a>'; return; }
+  const { data, error } = await sb.rpc('reviewable_visits');
+  visits = data ?? [];
+  if (error || !visits.length) {
+    gate.innerHTML = '<p class="lead">You can leave a review after a visit. Once Nikesh marks your massage as completed, it shows up here.</p><a class="btn" href="account.html#book">Book a session</a>';
+    return;
+  }
+  gate.hidden = true; form.hidden = false;
+  form.visit.innerHTML = visits.map((v) => `<option value="${v.id}">${esc(visitText(v))}</option>`).join('');
+  document.getElementById('visit-pick').hidden = visits.length < 2;
+  form.visit.addEventListener('change', setVisit);
+  setVisit();
   const { data: p } = await sb.from('profiles').select('full_name').eq('id', u.id).single();
   if (p?.full_name && !form.name.value) form.name.value = p.full_name;
-});
+})();
 
 function problem() {
   if (!form.rating.value) return 'Pick a star rating first.';
@@ -123,7 +146,7 @@ form.addEventListener('submit', async (e) => {
       headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${s.session?.access_token ?? SUPABASE_ANON_KEY}` },
       body: JSON.stringify({
         rating: Number(form.rating.value), name: form.name.value, service: form.service.value,
-        body: form.body.value, website: form.website.value,
+        body: form.body.value, website: form.website.value, appointment_id: Number(form.appointment_id.value),
       }),
     });
     out = await res.json().catch(() => ({}));

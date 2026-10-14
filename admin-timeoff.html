@@ -25,19 +25,20 @@
 <main class="wrap auth-page" id="page" hidden>
   <div class="auth-card wide">
     <h1>Time off</h1>
-    <p class="lead">Block days or hours so nobody can book them. Set it any time ahead. It shows on the booking form right away.</p>
+    <p class="lead">Block days or hours so nobody can book them. Set it any time ahead. It shows on the website with your note, and anyone who messages you gets an automatic reply with your return date.</p>
 
     <form id="off" class="auth-section" novalidate>
-      <div class="row">
-        <label>From (day)<input name="start" type="date" required></label>
-        <label>To (day) <span class="opt">(leave empty for one day)</span><input name="end" type="date"></label>
+      <div class="field">
+        <span class="field-label">Which days?</span>
+        <input type="hidden" name="start"><input type="hidden" name="end">
+        <div id="range-cal"></div>
       </div>
       <label class="check"><input type="checkbox" name="partial"> Only part of the day</label>
       <div class="row" id="times" hidden>
         <label>Starting at<input name="from_time" type="time" step="1800" value="09:00"></label>
         <label>Back at<input name="to_time" type="time" step="1800" value="12:00"></label>
       </div>
-      <label>Note <span class="opt">(only you see this)</span><input name="reason" maxlength="200" placeholder="Vacation, appointment..."></label>
+      <label>Note <span class="opt">(shown on the website and in chat replies, e.g. "Vacation")</span><input name="reason" maxlength="200" placeholder="Vacation, appointment..."></label>
       <button class="btn" type="submit">Block these times</button>
       <p class="status" id="status" role="status" aria-live="polite"></p>
     </form>
@@ -52,11 +53,14 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="supabase-client.js"></script>
 <script src="auth.js"></script>
+<script src="rangecal.js"></script>
 <script>
 const TZ = 'America/New_York';
 const form = document.getElementById('off');
 const statusEl = document.getElementById('status');
 const list = document.getElementById('list');
+const picker = mountRangeCal(document.getElementById('range-cal'), { startInput: form.start, endInput: form.end });
+const daysOf = (t) => { const out = []; const last = new Date(new Date(t.ends_at).getTime() - 1); for (let d = new Date(t.starts_at); d <= last; d = new Date(d.getTime() + 864e5)) out.push(d.toLocaleDateString('en-CA', { timeZone: TZ })); return out; };
 
 // "2026-10-18" + "14:30" in shop time -> a real Date.
 function shopTime(dateStr, hhmm = '00:00') {
@@ -73,6 +77,7 @@ const show = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: TZ, week
 
 async function load() {
   const { data } = await sb.from('time_off').select('*').gte('ends_at', new Date().toISOString()).order('starts_at');
+  picker.setMarked(new Set((data ?? []).flatMap(daysOf)));
   list.innerHTML = data?.length
     ? data.map((t) => `<li><b>${esc(show(t.starts_at))}</b><span>to ${esc(show(t.ends_at))}${t.reason ? ' · ' + esc(t.reason) : ''}</span>
         <button class="btn small ghost" data-del="${t.id}" type="button">Remove</button></li>`).join('')
@@ -83,7 +88,6 @@ requireUser().then(async (user) => {
   if (!user) return;
   if (!(await isAdmin())) return location.replace('account.html');
   document.getElementById('page').hidden = false;
-  form.start.min = new Date().toISOString().slice(0, 10);
   load();
 });
 
@@ -116,7 +120,7 @@ form.addEventListener('submit', (e) => {
     say(statusEl, count
       ? `Blocked. Heads up: ${count} existing appointment${count > 1 ? 's' : ''} fall in that time. Those stay booked until you cancel them in Studio.`
       : 'Blocked. Nobody can book those times now.');
-    form.reset();
+    form.reset(); picker.clear();
     document.getElementById('times').hidden = true;
     load();
   });

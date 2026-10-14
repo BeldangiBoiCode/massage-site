@@ -8,8 +8,8 @@ const slotsEl = document.getElementById('slots');
 const slotHint = document.getElementById('slot-hint');
 
 // Hours come from the `opening_hours` table (so changing days or times is a database edit, no code change).
-// Defaults below are used only if that can't be loaded. 20 min break between sessions; starts on :00/:30.
-const BREAK = 20, STEP = 30;
+// Defaults below are used only if that can't be loaded. 15 min break after every session; starts on any quarter hour.
+const BREAK = 15, STEP = 15;
 let HOURS = { 0: { open: 9 * 60, close: 20 * 60 }, 1: { open: 9 * 60, close: 20 * 60 } };
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MAX_DAYS_AHEAD = 60;
@@ -36,6 +36,20 @@ const today = new Date();
 const lastBookable = new Date(today.getFullYear(), today.getMonth(), today.getDate() + MAX_DAYS_AHEAD);
 let view = { y: today.getFullYear(), m: today.getMonth() };
 
+// Nikesh's time off (public). A day whose opening hours are fully covered is hidden from the calendar.
+let OFF = [];
+async function loadAway() {
+  try { const { data } = await sb.rpc('public_time_off'); OFF = (data ?? []).map((t) => [new Date(t.starts_at).getTime(), new Date(t.ends_at).getTime()]).sort((a, b) => a[0] - b[0]); } catch { /* the server still blocks those times */ }
+}
+function isAway(iso) {
+  const h = HOURS[new Date(`${iso}T12:00`).getDay()];
+  if (!h || !OFF.length) return false;
+  let at = shopTime(iso, toTime(h.open)).getTime();
+  const end = shopTime(iso, toTime(h.close)).getTime();
+  for (const [a, b] of OFF) { if (a <= at && b > at) at = b; if (at >= end) return true; }
+  return at >= end;
+}
+
 function renderCalendar() {
   const cols = Object.keys(HOURS).map(Number).sort((a, b) => a - b);
   const first = new Date(view.y, view.m, 1);
@@ -52,6 +66,7 @@ function renderCalendar() {
       const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + w * 7 + dow);
       if (d.getMonth() !== view.m) { row += '<span class="day blank"></span>'; continue; }
       const iso = localDate(d);
+      if (isAway(iso) || FREE[iso] === false) { row += '<span class="day blank"></span>'; any = any || false; continue; } // time off: the day doesn't show up
       const ok = iso >= todayIso && iso <= lastIso;
       any = true;
       const cls = ['day', iso === todayIso ? 'today' : '', iso === form.date.value ? 'selected' : ''].filter(Boolean).join(' ');
@@ -113,6 +128,41 @@ async function loadHours() {
   slotHint.textContent = hintText();
 }
 
+// Start times that are actually free on a day (hours, 2h notice today, existing sessions + break, time off, calendar events).
+function freeStarts(day, busy, dur) {
+  const hours = HOURS[new Date(`${day}T12:00`).getDay()];
+  if (!hours) return [];
+  const now = new Date();
+  const earliest = day === localDate(now) ? now.getHours() * 60 + now.getMinutes() + 120 : 0; // 2h notice
+  const out = [];
+  for (let s = hours.open; s + dur <= hours.close; s += STEP) {
+    if (s <= earliest) continue;
+    const clash = busy.some((b) => {
+      const bs = toMin(b.start_time);
+      const gap = b.buffer_min ?? BREAK; // 15 min after sessions; 0 for time off and calendar events
+      return s < bs + b.duration_min + gap && bs < s + dur + gap;
+    });
+    if (!clash) out.push(s);
+  }
+  return out;
+}
+
+// A day with no free start time at all (away, on break, or fully booked) is not shown in the calendar.
+const FREE = {};
+async function scanDays() {
+  const days = [];
+  for (let i = 0; i <= MAX_DAYS_AHEAD; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+    if (HOURS[d.getDay()]) days.push(localDate(d));
+  }
+  await Promise.all(days.map(async (iso) => {
+    try {
+      const { data, error } = await sb.rpc('busy_slots', { d: iso });
+      FREE[iso] = error || !data ? true : freeStarts(iso, data, 60).length > 0; // can't tell? leave it; the server still blocks it
+    } catch { FREE[iso] = true; }
+  }));
+}
+
 let slotRequest = 0;
 async function loadSlots() {
   const day = form.date.value;
@@ -134,18 +184,7 @@ async function loadSlots() {
   if (req !== slotRequest) return;
   slotsEl.removeAttribute('aria-busy');
 
-  const now = new Date();
-  const earliest = day === localDate(now) ? now.getHours() * 60 + now.getMinutes() + 120 : 0; // 2h notice
-  const chips = [];
-  for (let s = hours.open; s + dur <= hours.close; s += STEP) {
-    if (s <= earliest) continue;
-    const clash = busy.some((b) => {
-      const bs = toMin(b.start_time);
-      const gap = b.buffer_min ?? BREAK; // 20 min after sessions; 0 for time off and calendar events
-      return s < bs + b.duration_min + gap && bs < s + dur + gap;
-    });
-    if (!clash) chips.push(s);
-  }
+  const chips = freeStarts(day, busy, dur);
   if (!chips.length) return showMessage('Fully booked that day. Try another one.');
   slotsEl.innerHTML = chips.map((s) =>
     `<button type="button" class="chip" role="radio" aria-checked="false" data-start="${toTime(s)}">${label(s)}</button>`).join('');
@@ -292,6 +331,8 @@ form.addEventListener('submit', async (e) => {
     return;
   }
   showDone(booking, out.status === 'confirmed');
+  loadSlots(); // the time just booked disappears from the list right away
+  scanDays().then(renderCalendar); // and a day that just filled up disappears from the calendar
 });
 
 /* ---------- Page polish: reveal on scroll, hide the floating button at the form ---------- */
@@ -313,4 +354,4 @@ if (floating && 'IntersectionObserver' in window) {
 
 calEl.innerHTML = '<div class="skeleton cal-skel"></div>';
 showMessage('Pick a day to see open times.');
-loadHours().then(renderCalendar);
+loadHours().then(() => Promise.all([loadAway(), scanDays()])).then(() => { if (form.date.value && (isAway(form.date.value) || FREE[form.date.value] === false)) form.date.value = ''; renderCalendar(); });

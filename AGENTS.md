@@ -1,13 +1,15 @@
 # Namaste Nirvana Massage site
 
-**Start here: read `HANDOFF.md`.** It explains the whole system: the Supabase connection, what each page and file does,
+**Start here: read `HANDOFF.md`, especially the "READ FIRST: 2026-10-14 update" block at the top.** It explains the whole system: the Supabase connection, what each page and file does,
 the booking/chat/review flows, which ids and class names the scripts depend on, and what is still not configured.
 
 ## Who does what
 - Design (look, layout, copy, CSS): done here with Claude, pushed to GitHub.
-- Backend (Supabase tables, auth, edge functions, cron, chat, bookings, admin CRM data logic): handled separately by Austin.
-  Do not change `supabase/`, `supabase-client.js`, `chat.js`, the inline `<script>` blocks, or the data/booking logic in `app.js`
-  while restyling. If a visual change needs new data, say so instead of building it.
+- Backend (Supabase tables, auth, edge functions, cron, chat, bookings, admin CRM data logic): owned by Austin. On 2026-10-14 he asked
+  for backend features directly, so those were built (see HANDOFF.md) and backend edits are fine when he asks. When you are only
+  restyling, leave `supabase/`, `supabase-client.js`, `chat.js`, the inline `<script>` blocks and the data/booking logic in `app.js` alone.
+  **Never run `supabase db push` or deploy functions unless Austin says so.** Several migrations and functions are written but not yet applied
+  (see the apply order in HANDOFF.md). New pages: `staff.html` (front desk), rebuilt `account.html`. Staff, admin and customer all have different views.
 - After `git pull`, the site is already connected to the live backend. You can restyle everything and it keeps working,
   as long as you keep the ids, field names, `data-*` attributes and class names listed in `HANDOFF.md`.
 

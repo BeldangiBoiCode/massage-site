@@ -1,6 +1,7 @@
 // Calendar subscription feed Nikesh adds to Google/Apple Calendar:
 //   https://<ref>.supabase.co/functions/v1/calendar-feed?token=<feed_token>
-// Privacy: only first name, service and time. No phone, email or notes ever leave the database here.
+// Full details (name, phone, email, add-ons, notes) go into the event so Nikesh sees everything in his calendar app.
+// The link is secret (token); rotate it by updating app_settings.feed_token. Never share it.
 // Token = app_settings.feed_token (rotate by updating that row). verify_jwt = false.
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
@@ -17,7 +18,7 @@ Deno.serve(async (req) => {
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
   const { data: appts, error } = await db
     .from('appointments')
-    .select('id, client_name, service, starts_at, duration_min, status, created_at')
+    .select('id, client_name, client_phone, client_email, service, addons, price, tip, therapist_notes, starts_at, duration_min, status, created_at')
     .gte('starts_at', since)
     .order('starts_at');
   if (error) return new Response(error.message, { status: 500 });
@@ -30,6 +31,7 @@ Deno.serve(async (req) => {
     const start = new Date(a.starts_at);
     const end = new Date(start.getTime() + a.duration_min * 60000);
     const first = a.client_name.trim().split(/\s+/)[0];
+    const detail = [a.client_name, a.client_phone, a.client_email, `${a.duration_min} min ${a.service}`, a.addons?.length ? `Add-ons: ${a.addons.join(', ')}` : '', a.price != null ? `Price: $${a.price}` : '', a.tip > 0 ? `Tip: $${a.tip}` : '', a.therapist_notes ? `Notes: ${a.therapist_notes}` : ''].filter(Boolean).join('\n');
     lines.push(
       'BEGIN:VEVENT',
       `UID:appt-${a.id}@namaste-nirvana`,
@@ -37,7 +39,7 @@ Deno.serve(async (req) => {
       `DTSTART:${stamp(start)}`,
       `DTEND:${stamp(end)}`,
       `SUMMARY:${esc(`${a.service} - ${first}`)}`,
-      'DESCRIPTION:Details are in the admin page.',
+      `DESCRIPTION:${esc(detail)}`,
       'LOCATION:23 Logwood St\\, South Burlington\\, VT',
       `STATUS:${a.status === 'cancelled' ? 'CANCELLED' : 'CONFIRMED'}`,
       'END:VEVENT',
