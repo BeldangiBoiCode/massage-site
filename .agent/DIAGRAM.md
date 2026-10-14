@@ -32,6 +32,7 @@ The booking form no longer inserts into `booking_requests` directly (RLS blocks 
 - `index.html` → homepage. Booking form has email + length fields. Header "Sign in" link (`#account-link`) swaps to "My account".
 - `styles.css` → all styles. Tokens in `:root`. Sections: site, then Sign in, Account, Admin at the end.
 - `decor/cloud.svg`, `decor/trees.svg` → side scenery drawn by `body::before/::after` in styles.css (mirrored on right).
+- `header.js` → adds `.scrolled` to `.site-header` after scrolling (solid header). Loaded on every page with a header.
 - `app.js` → booking form: day (Sun/Mon) + time slots from `busy_slots()` (9am-8pm, starts on :00/:30 only, hidden 20 min break) → insert `booking_requests`; prefills from profile.
 - `supabase-client.js` → SUPABASE_URL + anon key, `sb` client, `currentUser()`, `isAdmin()`, `esc()`.
 - `login.html` → Google / Apple OAuth + email magic link → redirects to account.html.
