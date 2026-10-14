@@ -65,7 +65,7 @@ const empty = (cols, msg) => `<tr><td colspan="${cols}" class="empty">${msg}</td
 let requests = [];
 
 (async () => {
-  if (!(await currentUser())) return location.replace('login.html');
+  if (!(await currentUser())) return location.replace('auth.html');
   if (!(await isAdmin())) { document.getElementById('denied').hidden = false; return; }
   document.querySelector('main.admin').hidden = false;
   load();

@@ -74,7 +74,7 @@ let user;
 
 (async () => {
   user = await currentUser();
-  if (!user) return location.replace('login.html');
+  if (!user) return location.replace('auth.html');
   document.querySelector('main').hidden = false;
   if (await isAdmin()) document.getElementById('admin-link').hidden = false;
 
