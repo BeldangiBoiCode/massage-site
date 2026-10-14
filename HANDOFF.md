@@ -1,5 +1,11 @@
 # Handoff: what changed and how it all connects
 
+> ## FOR THE DESIGNER'S CLAUDE: DESIGN ONLY. DO NOT DO BACKEND WORK.
+> Your whole job is how the site looks (CSS, layout, images, wording, mobile polish). Do **not** touch `supabase/`, `supabase-client.js`,
+> `chat.js`, `admin-settings.js`, any `<script>` block in an `.html` page, or the data logic in `app.js`. Do **not** run `supabase` commands
+> or use Supabase tools, and do not build anything that needs new data. If a design needs backend work, tell the user "this needs Austin"
+> and stop. Everything below is background so you understand what exists; it is NOT a to-do list for you. See `CLAUDE.md` for the full rules.
+>
 > ## READ FIRST: 2026-10-14 update (big)
 > A lot was added on 2026-10-14. **Update, same day: the four new migrations are now APPLIED to the live Supabase project and all five
 > changed/new edge functions are DEPLOYED** (`submit-review`, `calendar-feed`, `calendar-connect`, `google-callback`, `calendar-push`,
@@ -46,9 +52,9 @@
 > - Reward menu for loyalty points. Several separate chat threads per customer (today: one thread with Nikesh).
 >
 > ### Rules that still apply
-> Keep the ids/classes listed below, add a `.skeleton` loader for anything that loads after paint, never commit secrets. The old rule
-> "design only, never touch the backend" no longer holds: Austin asked for backend features directly, so backend changes are in
-> scope, but **never apply migrations or deploy functions without Austin saying so**.
+> Keep the ids/classes listed below, add a `.skeleton` loader for anything that loads after paint, never commit secrets.
+> **The designer's Claude does design only and never backend work** (see the box at the very top and `CLAUDE.md`).
+> Only Austin's own sessions touch the backend, and only when he explicitly asks; migrations and function deploys never happen without him saying so.
 
 Read this first when you pull. It explains everything added to this repo on 2026-10-13/14 so you can keep
 working on **the look** without breaking **the backend**. (`CLAUDE.md` has the short version of the rules.)
@@ -106,7 +112,7 @@ Never commit service-role keys or passwords. The server tokens live in the datab
 - Auth pages: form/input names and ids used by their inline scripts.
 - Class names `.skeleton`, `.skeleton-*`, `.chip`, `.day`, `.cal`, `.act`, `.a-card` are used by scripts. Restyle them, don't rename them.
 
-**Don't touch** (backend; ask Austin): `supabase/`, `supabase-client.js`, the data logic inside `app.js`, `chat.js`, the inline `<script>` blocks.
+**Don't touch** (backend; ask Austin): `supabase/`, `supabase-client.js`, `chat.js`, `admin-settings.js`, the data logic inside `app.js`, and every inline `<script>` block in any page (including `staff.html`, `account.html`, `admin.html`).
 
 ## Skeleton rule (important)
 Anything that loads in after the page paints (Supabase data, lists, cards, time slots) must show a skeleton placeholder first.

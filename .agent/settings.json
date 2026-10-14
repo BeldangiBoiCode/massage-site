@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(supabase:*)",
+      "mcp__supabase"
+    ],
+    "ask": [
+      "Edit(/supabase/**)",
+      "Write(/supabase/**)",
+      "Edit(/supabase-client.js)",
+      "Write(/supabase-client.js)",
+      "Edit(/chat.js)",
+      "Write(/chat.js)",
+      "Edit(/app.js)",
+      "Write(/app.js)",
+      "Edit(/admin-settings.js)",
+      "Write(/admin-settings.js)"
+    ]
+  }
+}
