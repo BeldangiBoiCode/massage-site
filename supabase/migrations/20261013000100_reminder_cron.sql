@@ -14,7 +14,8 @@ insert into public.app_settings (key, value) values
   ('cron_secret', replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '')),
   ('feed_token',  replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''))
 on conflict do nothing;
--- Also set once by hand:  insert into app_settings values ('project_url','https://<ref>.supabase.co');
+-- On a NEW project, set this once by hand (the cron jobs read it). Current project:
+--   insert into public.app_settings values ('project_url', 'https://aryarbjftnhyayhdlapw.supabase.co');
 
 -- Hourly: reminders for appointments in the next 24h.
 select cron.schedule(
