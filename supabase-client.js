@@ -18,7 +18,9 @@ async function isAdmin() {
 }
 
 // Swap the header "Sign in" link to "My account" when signed in.
-currentUser().then((u) => {
+currentUser().then(async (u) => {
   const link = document.getElementById('account-link');
-  if (u && link) { link.textContent = 'My account'; link.href = 'account.html'; }
+  if (!u || !link) return;
+  link.textContent = 'My account'; link.href = 'account.html';
+  if (await isAdmin()) { link.textContent = 'Studio'; link.href = 'admin.html'; }
 });

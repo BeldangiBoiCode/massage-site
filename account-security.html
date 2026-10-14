@@ -16,7 +16,7 @@
   <nav class="wrap nav" aria-label="Main">
     <a class="logo" href="./">Namaste Nirvana</a>
     <div class="nav-actions">
-      <a class="btn small ghost" href="account.html">My account</a>
+      <a class="btn small ghost" id="home-link" href="account.html">My account</a>
       <button class="btn small ghost" id="sign-out" type="button">Sign out</button>
     </div>
   </nav>
@@ -65,6 +65,7 @@ requireUser().then((user) => {
   document.getElementById('summary').textContent =
     `Signed in as ${user.email}. Sign-in methods: ${methods.length ? methods.join(', ') : 'email'}.`;
   document.getElementById('page').hidden = false;
+  isAdmin().then((yes) => { if (yes) { const h = document.getElementById('home-link'); h.href = 'admin.html'; h.textContent = 'Studio'; } });
 });
 
 emailForm.addEventListener('submit', (e) => {

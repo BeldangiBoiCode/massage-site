@@ -2,155 +2,436 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Studio admin | Namaste Nirvana</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Studio | Namaste Nirvana</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="admin.css">
 </head>
 <body>
 <header class="site-header">
   <nav class="wrap nav" aria-label="Admin">
     <a class="logo" href="./">Namaste Nirvana</a>
-    <ul>
-      <li><a href="#requests">Requests</a></li>
-      <li><a href="#appointments">Appointments</a></li>
-      <li><a href="#clients">Clients</a></li>
-      <li><a href="#reminders">Reminders</a></li>
-      <li><a href="admin-timeoff.html">Time off</a></li>
-    </ul>
-    <a class="btn small ghost" href="account.html">My account</a>
+    <div class="nav-actions">
+      <a class="btn small ghost" href="admin-invite.html">Invite</a>
+      <a class="btn small ghost" href="account-security.html">Security</a>
+      <button class="btn small ghost" id="sign-out" type="button">Sign out</button>
+    </div>
   </nav>
 </header>
 
-<main class="wrap admin" hidden>
-  <h1>Studio</h1>
-  <dl class="facts stats" id="stats"><div><dt>New requests</dt><dd><span class="skeleton skeleton-pill"></span></dd></div><div><dt>Upcoming visits</dt><dd><span class="skeleton skeleton-pill"></span></dd></div><div><dt>Clients</dt><dd><span class="skeleton skeleton-pill"></span></dd></div></dl>
+<main class="adm" hidden>
+  <div class="adm-top"><h1>Studio</h1></div>
 
-  <section id="requests">
-    <h2>Booking requests</h2>
-    <p class="hint">Pick a time and confirm to turn a request into an appointment.</p>
-    <div class="table-wrap"><table><thead><tr><th>Sent</th><th>Name</th><th>Contact</th><th>Wants</th><th>Notes</th><th>Status</th><th></th></tr></thead><tbody id="req-rows" aria-busy="true"><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr></tbody></table></div>
-  </section>
+  <div class="adm-stats" id="stats">
+    <div class="stat"><span class="skeleton"></span><span>Today</span></div>
+    <div class="stat"><span class="skeleton"></span><span>Upcoming</span></div>
+    <div class="stat"><span class="skeleton"></span><span>Collected this month</span></div>
+  </div>
 
-  <section id="appointments">
-    <h2>Appointments</h2>
-    <div class="table-wrap"><table><thead><tr><th>When</th><th>Client</th><th>Massage</th><th>Price</th><th>Reminder</th><th>Status</th></tr></thead><tbody id="appt-rows" aria-busy="true"><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr></tbody></table></div>
-  </section>
+  <nav class="adm-tabs" role="tablist" aria-label="Sections">
+    <button type="button" role="tab" data-act="tab" data-tab="schedule" class="on">Schedule</button>
+    <button type="button" role="tab" data-act="tab" data-tab="customers">Customers</button>
+    <button type="button" role="tab" data-act="tab" data-tab="reviews">Reviews</button>
+    <button type="button" role="tab" data-act="tab" data-tab="breaks">Breaks</button>
+  </nav>
 
-  <section id="clients">
-    <h2>Clients</h2>
-    <div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Pressure</th><th>Health notes</th><th>Joined</th></tr></thead><tbody id="client-rows" aria-busy="true"><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr></tbody></table></div>
-  </section>
-
-  <section id="reminders">
-    <h2>Reminders sent</h2>
-    <div class="table-wrap"><table><thead><tr><th>When</th><th>Channel</th><th>To</th><th>Result</th></tr></thead><tbody id="note-rows" aria-busy="true"><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr><tr><td colspan="7"><div class="skeleton skeleton-line"></div></td></tr></tbody></table></div>
-  </section>
+  <section id="p-schedule" role="tabpanel"><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></section>
+  <section id="p-customers" role="tabpanel" hidden><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></section>
+  <section id="p-reviews" role="tabpanel" hidden><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></section>
+  <section id="p-breaks" role="tabpanel" hidden><div class="skeleton sk-card"></div></section>
 </main>
 
 <main class="wrap auth-page" id="denied" hidden>
   <div class="auth-card"><h1>Not for you</h1><p class="lead">This page is only for the studio owner.</p><a class="btn" href="./">Back to the site</a></div>
 </main>
 
+<div class="toast" id="toast" hidden></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="supabase-client.js"></script>
 <script>
+const TZ = 'America/New_York';
 const PRICES = { 60: 85, 90: 120 };
-const fmt = (iso) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-const day = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-const empty = (cols, msg) => `<tr><td colspan="${cols}" class="empty">${msg}</td></tr>`;
-let requests = [];
+const S = { appts: [], pay: [], reqs: [], profiles: [], off: [], reviews: [], disc: [], tab: 'schedule', when: 'upcoming', q: '', open: new Set() };
+const $ = (s) => document.querySelector(s);
+
+/* ---------- helpers ---------- */
+const money = (n) => '$' + (Number(n) % 1 ? Number(n).toFixed(2) : Number(n));
+const digits = (s) => String(s ?? '').replace(/\D/g, '');
+const intl = (phone) => { const d = digits(phone); return d.length === 10 ? '+1' + d : d.length === 11 && d[0] === '1' ? '+' + d : '+' + d; };
+const first = (n) => String(n ?? '').trim().split(/\s+/)[0] || 'there';
+const tzParts = (iso, opts) => new Date(iso).toLocaleString('en-US', { timeZone: TZ, ...opts });
+const clock = (iso) => tzParts(iso, { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+const longDay = (iso) => tzParts(iso, { weekday: 'long', month: 'short', day: 'numeric' });
+const shortDay = (iso) => tzParts(iso, { month: 'short', day: 'numeric' });
+const dayKey = (iso) => new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ });
+const attr = (s) => esc(s); // esc() is safe for attribute values too
+
+const callHref = (p) => `tel:${intl(p)}`;
+const smsHref = (p, body) => `sms:${intl(p)}?&body=${encodeURIComponent(body)}`;
+const mailHref = (e, subject, body) => `mailto:${e}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+// "2026-10-19" + "10:00" in shop time -> a real Date.
+function shopTime(dateStr, hhmm) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const [h, mi] = hhmm.split(':').map(Number);
+  const guess = Date.UTC(y, m - 1, d, h, mi);
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+    timeZone: TZ, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric',
+  }).formatToParts(new Date(guess)).map((x) => [x.type, x.value]));
+  return new Date(guess - (Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - guess));
+}
+
+function toast(html, ms = 14000) {
+  const t = $('#toast');
+  t.innerHTML = html + '<div class="toast-row"><button class="act" type="button" data-act="toast-close">Close</button></div>';
+  t.hidden = false;
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => { t.hidden = true; }, ms);
+}
+
+const payMap = () => S.pay.reduce((m, p) => ((m[p.appointment_id] = (m[p.appointment_id] ?? 0) + Number(p.amount)), m), {});
+const isUpcoming = (a) => a.status === 'scheduled' && new Date(a.starts_at).getTime() + a.duration_min * 60000 > Date.now();
+
+/* ---------- loading ---------- */
+async function load() {
+  const nowIso = new Date().toISOString();
+  const [appt, pay, req, prof, off, rev, disc] = await Promise.all([
+    sb.from('appointments').select('*').order('starts_at', { ascending: false }).limit(1000),
+    sb.from('payments').select('*').order('paid_at', { ascending: false }).limit(3000),
+    sb.from('booking_requests').select('*').eq('status', 'new').order('created_at'),
+    sb.from('profiles').select('*'),
+    sb.from('time_off').select('*').gte('ends_at', nowIso).order('starts_at'),
+    sb.from('reviews').select('*').order('created_at', { ascending: false }).limit(300),
+    sb.from('discounts').select('*').order('created_at', { ascending: false }).limit(200),
+  ]);
+  S.appts = appt.data ?? []; S.pay = pay.data ?? []; S.reqs = req.data ?? []; S.profiles = prof.data ?? [];
+  S.off = off.data ?? []; S.reviews = rev.data ?? []; S.disc = disc.data ?? [];
+  render();
+}
+
+/* ---------- schedule ---------- */
+function apptCard(a, pm) {
+  const paid = pm[a.id] ?? 0, price = Number(a.price ?? 0);
+  const over = a.status === 'done' || new Date(a.starts_at) < new Date();
+  const payTag = a.status === 'cancelled' || a.status === 'no_show' ? ''
+    : price > 0 && paid >= price ? `<span class="tag paid">Paid ${money(paid)}</span>`
+    : paid > 0 ? `<span class="tag unpaid">Part paid ${money(paid)} of ${money(price)}</span>`
+    : `<span class="tag ${over ? 'unpaid' : ''}">${over ? 'Unpaid' : 'Not paid yet'}</span>`;
+  const remaining = Math.max(price - paid, 0) || '';
+  const msg = `Hi ${first(a.client_name)}, this is Nikesh at Namaste Nirvana. About your ${a.duration_min} min massage on ${longDay(a.starts_at)} at ${clock(a.starts_at)}: `;
+  const key = 'a' + a.id;
+  return `<article class="a-card">
+    <div class="a-top"><b class="a-time">${esc(clock(a.starts_at))}</b><span class="c-sub">${esc(a.duration_min)} min</span><span class="tag ${esc(a.status)}">${esc(a.status.replace('_', ' '))}</span></div>
+    <h3 class="a-name">${esc(a.client_name)}</h3>
+    <p class="a-meta">${esc(a.service)}${a.addons?.length ? ' · ' + esc(a.addons.join(', ')) : ''}</p>
+    <p class="a-money">${money(price)} ${payTag}</p>
+    <div class="acts">
+      ${a.client_phone ? `<a class="act main" href="${attr(callHref(a.client_phone))}">Call</a><a class="act" href="${attr(smsHref(a.client_phone, msg))}">Text</a>` : ''}
+      ${a.client_email ? `<a class="act" href="${attr(mailHref(a.client_email, 'Your massage at Namaste Nirvana', msg))}">Email</a>` : ''}
+    </div>
+    <details class="more" data-key="${key}" ${S.open.has(key) ? 'open' : ''}><summary>More</summary>
+      <div class="more-body">
+        ${a.status !== 'cancelled' ? `<div><h4>Payment</h4>
+          <form class="mini-form" data-pay="${a.id}">
+            <input name="amount" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="Amount" value="${remaining}" required>
+            <select name="method"><option value="cash">Cash</option><option value="card">Card</option><option value="venmo">Venmo</option><option value="zelle">Zelle</option><option value="other">Other</option></select>
+            <button class="act main" type="submit">Record payment</button>
+          </form></div>` : ''}
+        <div><h4>Status</h4><div class="acts">
+          ${a.status !== 'done' ? `<button class="act" type="button" data-act="status" data-id="${a.id}" data-to="done">Mark done</button>` : ''}
+          ${a.status !== 'no_show' ? `<button class="act" type="button" data-act="status" data-id="${a.id}" data-to="no_show">No-show</button>` : ''}
+          ${a.status !== 'cancelled' ? `<button class="act danger" type="button" data-act="status" data-id="${a.id}" data-to="cancelled">Cancel appointment</button>` : `<button class="act" type="button" data-act="status" data-id="${a.id}" data-to="scheduled">Restore</button>`}
+        </div></div>
+        ${a.therapist_notes ? `<div><h4>Your notes</h4><div class="note-box">${esc(a.therapist_notes)}</div></div>` : ''}
+      </div>
+    </details>
+  </article>`;
+}
+
+function reqCard(r) {
+  const when = `${shortDay(shopTime(r.preferred_date, (r.preferred_time ?? '10:00').slice(0, 5)).toISOString())}, ${(r.preferred_time ?? '').slice(0, 5)}`;
+  return `<article class="a-card attn">
+    <div class="a-top"><b class="a-time">Needs your OK</b><span class="tag new">new</span></div>
+    <h3 class="a-name">${esc(r.name)}</h3>
+    <p class="a-meta">${esc(r.duration_min)} min ${esc(r.service)} · ${esc(when)}</p>
+    ${r.notes ? `<div class="note-box">${esc(r.notes)}</div>` : ''}
+    <div class="acts">
+      <a class="act" href="${attr(callHref(r.phone))}">Call</a>
+      <button class="act main" type="button" data-act="req-confirm" data-id="${r.id}">Confirm</button>
+      <button class="act danger" type="button" data-act="req-decline" data-id="${r.id}">Decline</button>
+    </div>
+  </article>`;
+}
+
+function renderSchedule() {
+  const pm = payMap();
+  const list = S.appts.filter((a) => (S.when === 'upcoming' ? isUpcoming(a) : !isUpcoming(a)));
+  list.sort((a, b) => (S.when === 'upcoming' ? 1 : -1) * (new Date(a.starts_at) - new Date(b.starts_at)));
+  const shown = list.slice(0, S.when === 'past' ? 80 : 400);
+  const today = dayKey(new Date().toISOString()), tomorrow = dayKey(new Date(Date.now() + 864e5).toISOString());
+  let html = S.reqs.length ? `<h2 class="sec-title">Needs your OK</h2>${S.reqs.map(reqCard).join('')}` : '';
+  html += `<div class="seg" role="group" aria-label="Show">
+    <button type="button" data-act="when" data-when="upcoming" class="${S.when === 'upcoming' ? 'on' : ''}">Upcoming</button>
+    <button type="button" data-act="when" data-when="past" class="${S.when === 'past' ? 'on' : ''}">Past</button></div>`;
+  if (!shown.length) {
+    html += `<div class="empty-card">${S.when === 'upcoming' ? 'No upcoming appointments yet. New bookings appear here the moment someone books.' : 'No past appointments yet.'}</div>`;
+  } else {
+    let last = '';
+    for (const a of shown) {
+      const k = dayKey(a.starts_at);
+      if (k !== last) {
+        last = k;
+        const tag = k === today ? 'Today' : k === tomorrow ? 'Tomorrow' : '';
+        html += `<h2 class="day-head">${esc(longDay(a.starts_at))}${tag ? `<small>${tag}</small>` : ''}</h2>`;
+      }
+      html += apptCard(a, pm);
+    }
+  }
+  $('#p-schedule').innerHTML = html;
+}
+
+/* ---------- customers ---------- */
+function buildCustomers() {
+  const map = new Map(), byPhone = new Map();
+  const add = (key, seed) => { if (!map.has(key)) map.set(key, { key, name: '', phone: '', email: '', profile: null, appts: [], ...seed }); return map.get(key); };
+  for (const p of S.profiles) {
+    const c = add(p.id, {});
+    c.profile = p; c.name = p.full_name ?? ''; c.phone = p.phone ?? ''; c.email = p.email ?? '';
+    if (digits(p.phone)) byPhone.set(digits(p.phone), p.id);
+  }
+  for (const a of S.appts) {
+    const k = a.user_id || byPhone.get(digits(a.client_phone)) || digits(a.client_phone) || (a.client_email ?? '').toLowerCase() || 'x' + a.id;
+    const c = add(k, {});
+    c.appts.push(a);
+    if (!c.name) c.name = a.client_name;
+    if (!c.phone) c.phone = a.client_phone ?? '';
+    if (!c.email) c.email = a.client_email ?? '';
+  }
+  return [...map.values()].filter((c) => c.name || c.email || c.phone)
+    .map((c) => ({ ...c, last: c.appts.reduce((m, a) => (a.starts_at > m ? a.starts_at : m), '') }))
+    .sort((a, b) => (b.last || '').localeCompare(a.last || '') || a.name.localeCompare(b.name));
+}
+
+function customerCard(c, pm) {
+  const live = c.appts.filter((a) => a.status !== 'cancelled' && a.status !== 'no_show');
+  const paid = live.reduce((n, a) => n + (pm[a.id] ?? 0), 0);
+  const owed = c.appts.filter((a) => a.status === 'done' || (a.status === 'scheduled' && new Date(a.starts_at) < new Date()))
+    .reduce((n, a) => n + Math.max(Number(a.price ?? 0) - (pm[a.id] ?? 0), 0), 0);
+  const key = 'c' + c.key;
+  const hi = `Hi ${first(c.name)}, `;
+  const visits = [...c.appts].sort((a, b) => b.starts_at.localeCompare(a.starts_at)).map((a) => {
+    const p = pm[a.id] ?? 0;
+    const dead = a.status === 'cancelled' || a.status === 'no_show';
+    const full = p >= Number(a.price ?? 0) && p > 0;
+    return `<div class="visit-line"><span>${esc(shortDay(a.starts_at))} · ${esc(a.service)} · ${esc(a.duration_min)} min</span>
+      <span>${money(a.price ?? 0)} <span class="tag ${dead ? 'cancelled' : full ? 'paid' : 'unpaid'}">${dead ? esc(a.status.replace('_', ' ')) : full ? 'paid' : 'unpaid'}</span></span></div>`;
+  }).join('');
+  return `<article class="a-card">
+    <h3 class="a-name">${esc(c.name || 'Unnamed')}</h3>
+    <p class="c-sub">${c.phone ? esc(c.phone) : ''}${c.phone && c.email ? ' · ' : ''}${c.email ? esc(c.email) : ''}</p>
+    <p class="a-meta">${live.length} visit${live.length === 1 ? '' : 's'} · paid ${money(paid)}${owed > 0 ? ` · <b>owes ${money(owed)}</b>` : ''}${c.profile ? ' · has an account' : ''}</p>
+    <div class="acts">
+      ${c.phone ? `<a class="act main" href="${attr(callHref(c.phone))}">Call</a><a class="act" href="${attr(smsHref(c.phone, hi))}">Text</a>` : ''}
+      ${c.email ? `<a class="act" href="${attr(mailHref(c.email, 'From Namaste Nirvana', hi))}">Email</a>` : ''}
+    </div>
+    <details class="more" data-key="${key}" ${S.open.has(key) ? 'open' : ''}><summary>Visits, notes and discounts</summary>
+      <div class="more-body">
+        ${c.profile?.health_notes ? `<div><h4>Health notes (private)</h4><div class="note-box">${esc(c.profile.health_notes)}</div></div>` : ''}
+        ${c.profile?.pressure_pref ? `<div><h4>Pressure</h4><p>${esc(c.profile.pressure_pref)}</p></div>` : ''}
+        <div><h4>Visits</h4>${visits || '<p class="c-sub">No visits yet.</p>'}</div>
+        <div><h4>Send a discount</h4>
+          <form class="mini-form" data-disc data-name="${attr(c.name)}" data-phone="${attr(c.phone)}" data-email="${attr(c.email)}">
+            <select name="kind"><option value="percent">% off</option><option value="amount">$ off</option></select>
+            <input name="value" type="number" inputmode="decimal" step="1" min="1" max="100" placeholder="Amount, e.g. 10" required>
+            <input name="days" type="number" inputmode="numeric" min="1" max="365" value="30" aria-label="Valid for days">
+            <button class="act main" type="submit">Create code</button>
+          </form>
+          <div class="disc-out acts wide" style="margin-top:10px"></div>
+          <p class="c-sub" style="margin-top:6px">The middle box is how many days the code stays valid.</p>
+        </div>
+      </div>
+    </details>
+  </article>`;
+}
+
+function renderCustomers() {
+  const pm = payMap();
+  const q = S.q.trim().toLowerCase(), qd = digits(S.q);
+  const all = buildCustomers();
+  const shown = all.filter((c) => !q || c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || (qd && digits(c.phone).includes(qd)));
+  const codes = S.disc.slice(0, 30).map((d) => {
+    const exp = d.expires_at ? new Date(d.expires_at) : null;
+    const state = d.redeemed_at ? 'used' : exp && exp < new Date() ? 'expired' : 'active';
+    return `<article class="a-card"><div class="a-top"><b>${esc(d.code)}</b><span class="tag ${state === 'active' ? 'paid' : 'cancelled'}">${state}</span></div>
+      <p class="a-meta">${d.kind === 'percent' ? esc(Number(d.value)) + '% off' : money(d.value) + ' off'}${d.customer_name ? ' · for ' + esc(d.customer_name) : ''}${exp ? ' · until ' + esc(shortDay(exp.toISOString())) : ''}</p>
+      <div class="acts">${state === 'active' ? `<button class="act" type="button" data-act="disc-used" data-id="${d.id}">Mark used</button>` : ''}<button class="act danger" type="button" data-act="disc-del" data-id="${d.id}">Delete</button></div></article>`;
+  }).join('');
+  $('#p-customers').innerHTML = `
+    <div class="search"><input id="q" type="search" placeholder="Search name, phone or email" value="${attr(S.q)}" autocomplete="off" enterkeyhint="search"></div>
+    ${shown.length ? shown.map((c) => customerCard(c, pm)).join('') : `<div class="empty-card">${all.length ? 'No one matches that search.' : 'No customers yet. They appear here after their first booking.'}</div>`}
+    ${S.disc.length ? `<h2 class="sec-title">Discount codes</h2>${codes}` : ''}`;
+}
+
+/* ---------- reviews ---------- */
+function renderReviews() {
+  const order = { pending: 0, approved: 1, hidden: 2 };
+  const list = [...S.reviews].sort((a, b) => order[a.status] - order[b.status] || b.created_at.localeCompare(a.created_at));
+  $('#p-reviews').innerHTML = list.length ? list.map((r) => `<article class="a-card ${r.status === 'pending' ? 'attn' : ''}">
+    <div class="a-top"><span class="stars-line" aria-label="${r.rating} out of 5">${'★'.repeat(r.rating)}<i>${'★'.repeat(5 - r.rating)}</i></span><span class="tag ${r.status === 'approved' ? 'paid' : r.status === 'pending' ? 'new' : 'cancelled'}">${esc(r.status)}</span></div>
+    <p style="white-space:pre-line">${esc(r.body)}</p>
+    <p class="a-meta">${esc(r.name)}${r.service ? ' · ' + esc(r.service) : ''} · ${esc(shortDay(r.created_at))}</p>
+    <div class="acts">
+      ${r.status !== 'approved' ? `<button class="act main" type="button" data-act="rev" data-id="${r.id}" data-to="approved">Show on site</button>` : ''}
+      ${r.status !== 'hidden' ? `<button class="act" type="button" data-act="rev" data-id="${r.id}" data-to="hidden">Hide</button>` : ''}
+      <button class="act danger" type="button" data-act="rev-del" data-id="${r.id}">Delete</button>
+    </div></article>`).join('')
+    : '<div class="empty-card">No reviews yet. Share <b>review.html</b> with your clients after their visit.</div>';
+}
+
+/* ---------- breaks ---------- */
+function renderBreaks() {
+  const range = (t) => {
+    const wholeDays = clock(t.starts_at) === '12:00 am' && clock(t.ends_at) === '12:00 am';
+    if (wholeDays) {
+      const lastDay = new Date(new Date(t.ends_at).getTime() - 1).toISOString();
+      return dayKey(t.starts_at) === dayKey(lastDay) ? longDay(t.starts_at) : `${longDay(t.starts_at)} to ${longDay(lastDay)}`;
+    }
+    return `${longDay(t.starts_at)}, ${clock(t.starts_at)} to ${dayKey(t.starts_at) === dayKey(t.ends_at) ? '' : longDay(t.ends_at) + ', '}${clock(t.ends_at)}`;
+  };
+  $('#p-breaks').innerHTML = `<div class="acts wide" style="margin-bottom:14px"><a class="act main" href="admin-timeoff.html">Add a break or days off</a></div>` +
+    (S.off.length ? S.off.map((t) => `<article class="a-card"><h3 class="a-name">${esc(range(t))}</h3>${t.reason ? `<p class="a-meta">${esc(t.reason)}</p>` : ''}
+      <p class="c-sub">Nobody can book these times.</p>
+      <div class="acts"><button class="act danger" type="button" data-act="off-del" data-id="${t.id}">Remove</button></div></article>`).join('')
+      : '<div class="empty-card">No time off planned. Add one and those times disappear from the booking calendar right away.</div>');
+}
+
+/* ---------- render ---------- */
+function render() {
+  const today = dayKey(new Date().toISOString()), ym = today.slice(0, 7);
+  const todayN = S.appts.filter((a) => a.status !== 'cancelled' && dayKey(a.starts_at) === today).length;
+  const upN = S.appts.filter(isUpcoming).length;
+  const month = S.pay.filter((p) => dayKey(p.paid_at).slice(0, 7) === ym).reduce((n, p) => n + Number(p.amount), 0);
+  $('#stats').innerHTML = [['Today', todayN], ['Upcoming', upN], ['Collected this month', money(month)]]
+    .map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
+
+  const pending = S.reviews.filter((r) => r.status === 'pending').length;
+  document.querySelectorAll('.adm-tabs button').forEach((b) => {
+    b.classList.toggle('on', b.dataset.tab === S.tab);
+    b.setAttribute('aria-selected', b.dataset.tab === S.tab);
+    b.querySelector('.dot')?.remove();
+    const n = b.dataset.tab === 'schedule' ? S.reqs.length : b.dataset.tab === 'reviews' ? pending : 0;
+    if (n) b.insertAdjacentHTML('beforeend', `<span class="dot">${n}</span>`);
+  });
+  for (const t of ['schedule', 'customers', 'reviews', 'breaks']) $(`#p-${t}`).hidden = t !== S.tab;
+  ({ schedule: renderSchedule, customers: renderCustomers, reviews: renderReviews, breaks: renderBreaks })[S.tab]();
+}
+
+/* ---------- actions ---------- */
+async function guard(fn) { try { await fn(); } catch (e) { toast(`<span>${esc(e.message ?? 'That didn\'t work.')}</span>`); } }
+const must = (r) => { if (r.error) throw r.error; return r; };
+
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const { act, id, to } = el.dataset;
+  guard(async () => {
+    if (act === 'tab') { S.tab = el.dataset.tab; render(); window.scrollTo({ top: 0 }); }
+    else if (act === 'when') { S.when = el.dataset.when; renderSchedule(); }
+    else if (act === 'toast-close') $('#toast').hidden = true;
+    else if (act === 'status') {
+      const a = S.appts.find((x) => x.id == id);
+      if (to === 'cancelled' && !confirm(`Cancel ${a.client_name}'s appointment on ${longDay(a.starts_at)}?`)) return;
+      must(await sb.from('appointments').update({ status: to }).eq('id', id));
+      await load();
+      if (to === 'cancelled') {
+        const m = `Hi ${first(a.client_name)}, this is Nikesh at Namaste Nirvana. I'm sorry, I need to cancel your massage on ${longDay(a.starts_at)} at ${clock(a.starts_at)}. Please rebook at ${SITE_BASE}#book or call (802) 373-9672.`;
+        toast(`<span>Cancelled. Let ${esc(first(a.client_name))} know:</span><div class="toast-row">
+          ${a.client_phone ? `<a class="act" href="${attr(smsHref(a.client_phone, m))}">Text</a>` : ''}
+          ${a.client_email ? `<a class="act" href="${attr(mailHref(a.client_email, 'Your massage at Namaste Nirvana', m))}">Email</a>` : ''}</div>`, 30000);
+      }
+    }
+    else if (act === 'req-confirm') {
+      const r = S.reqs.find((x) => x.id == id);
+      const addons = r.addons ?? [];
+      const price = (PRICES[r.duration_min] ?? 85) + addons.reduce((n, x) => n + (x === 'Cupping' ? 15 : x === 'TENS machine' ? 20 : 0), 0);
+      must(await sb.from('appointments').insert({
+        user_id: r.user_id, booking_id: r.id, client_name: r.name, client_phone: r.phone, client_email: r.email, service: r.service,
+        starts_at: shopTime(r.preferred_date, (r.preferred_time ?? '10:00').slice(0, 5)).toISOString(), duration_min: r.duration_min, price, addons,
+      }));
+      must(await sb.from('booking_requests').update({ status: 'confirmed', processed_at: new Date().toISOString() }).eq('id', id));
+      await load();
+    }
+    else if (act === 'req-decline') {
+      if (!confirm('Decline this request?')) return;
+      must(await sb.from('booking_requests').update({ status: 'declined', processed_at: new Date().toISOString() }).eq('id', id));
+      await load();
+    }
+    else if (act === 'rev') { must(await sb.from('reviews').update({ status: to }).eq('id', id)); await load(); }
+    else if (act === 'rev-del') { if (!confirm('Delete this review for good?')) return; must(await sb.from('reviews').delete().eq('id', id)); await load(); }
+    else if (act === 'off-del') { if (!confirm('Remove this time off? Those times become bookable again.')) return; must(await sb.from('time_off').delete().eq('id', id)); await load(); }
+    else if (act === 'disc-used') { must(await sb.from('discounts').update({ redeemed_at: new Date().toISOString() }).eq('id', id)); await load(); }
+    else if (act === 'disc-del') { if (!confirm('Delete this code?')) return; must(await sb.from('discounts').delete().eq('id', id)); await load(); }
+  });
+});
+
+document.addEventListener('submit', (e) => {
+  const f = e.target;
+  if (f.dataset.pay) {
+    e.preventDefault();
+    guard(async () => {
+      const amount = Number(f.amount.value);
+      if (!(amount > 0)) throw new Error('Enter an amount.');
+      f.querySelector('button').disabled = true;
+      must(await sb.from('payments').insert({ appointment_id: Number(f.dataset.pay), amount, method: f.method.value }));
+      await load();
+    });
+  } else if (f.dataset.disc !== undefined) {
+    e.preventDefault();
+    guard(async () => {
+      const value = Number(f.value.value), kind = f.kind.value;
+      if (!(value > 0) || (kind === 'percent' && value > 100)) throw new Error(kind === 'percent' ? 'Pick 1 to 100 percent.' : 'Enter a dollar amount.');
+      const code = 'NN-' + Array.from(crypto.getRandomValues(new Uint8Array(5)), (b) => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b % 32]).join('');
+      const expires = new Date(Date.now() + Math.max(1, Number(f.days.value) || 30) * 864e5);
+      must(await sb.from('discounts').insert({ code, kind, value, customer_name: f.dataset.name || null, customer_contact: f.dataset.phone || f.dataset.email || null, expires_at: expires.toISOString() }));
+      const off = kind === 'percent' ? `${value}% off` : `${money(value)} off`;
+      const m = `Hi ${first(f.dataset.name)}, thank you for visiting Namaste Nirvana! Here is ${off} your next massage: code ${code} (good until ${shortDay(expires.toISOString())}). Book at ${SITE_BASE}#book - Nikesh`;
+      f.nextElementSibling.innerHTML =
+        `<span class="tag paid" style="align-self:center">Code ${esc(code)} created</span>` +
+        (f.dataset.phone ? `<a class="act main" href="${attr(smsHref(f.dataset.phone, m))}">Text it</a>` : '') +
+        (f.dataset.email ? `<a class="act" href="${attr(mailHref(f.dataset.email, `${off} your next massage`, m))}">Email it</a>` : '');
+      const { data } = await sb.from('discounts').select('*').order('created_at', { ascending: false }).limit(200);
+      S.disc = data ?? S.disc;
+    });
+  }
+});
+
+document.addEventListener('input', (e) => {
+  if (e.target.id !== 'q') return;
+  S.q = e.target.value;
+  const pos = e.target.selectionStart;
+  renderCustomers();
+  const q = $('#q'); q.focus(); q.setSelectionRange(pos, pos);
+});
+
+// Remember which cards are open so a refresh doesn't snap them shut.
+document.addEventListener('toggle', (e) => {
+  const k = e.target.dataset?.key;
+  if (k) e.target.open ? S.open.add(k) : S.open.delete(k);
+}, true);
+
+document.getElementById('sign-out').addEventListener('click', async () => { await sb.auth.signOut(); location.replace('./'); });
 
 (async () => {
   if (!(await currentUser())) return location.replace('auth.html');
-  if (!(await isAdmin())) { document.getElementById('denied').hidden = false; return; }
-  document.querySelector('main.admin').hidden = false;
+  if (!(await isAdmin())) return location.replace('account.html');
+  $('main.adm').hidden = false;
   load();
 })();
-
-async function load() {
-  const [req, appt, cli, notes] = await Promise.all([
-    sb.from('booking_requests').select('*').order('created_at', { ascending: false }).limit(200),
-    sb.from('appointments').select('*').order('starts_at', { ascending: false }).limit(200),
-    sb.from('profiles').select('*').order('created_at', { ascending: false }),
-    sb.from('notifications').select('*').order('created_at', { ascending: false }).limit(100),
-  ]);
-  requests = req.data ?? [];
-  const appts = appt.data ?? [], clients = cli.data ?? [], sent = notes.data ?? [];
-  const now = Date.now();
-
-  document.getElementById('stats').innerHTML = [
-    ['New requests', requests.filter((r) => r.status === 'new').length],
-    ['Upcoming visits', appts.filter((a) => a.status === 'scheduled' && new Date(a.starts_at) > now).length],
-    ['Clients', clients.length],
-  ].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
-
-  document.getElementById('req-rows').innerHTML = requests.length ? requests.map((r) => `
-    <tr>
-      <td>${day(r.created_at)}</td>
-      <td>${esc(r.name)}</td>
-      <td><a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>${r.email ? `<br>${esc(r.email)}` : ''}</td>
-      <td>${esc(r.duration_min)} min ${esc(r.service)}<br>${esc(r.preferred_date)}${r.preferred_time ? ' ' + esc(r.preferred_time.slice(0, 5)) : ''}</td>
-      <td>${esc(r.notes)}</td>
-      <td><span class="tag ${esc(r.status)}">${esc(r.status)}</span></td>
-      <td>${r.status === 'new' ? `
-        <div class="row-actions">
-          <input type="datetime-local" aria-label="Appointment time for ${esc(r.name)}" id="t${r.id}" value="${esc(r.preferred_date)}T${esc((r.preferred_time || '10:00').slice(0, 5))}">
-          <button class="btn small" data-confirm="${r.id}">Confirm</button>
-          <button class="btn small ghost" data-decline="${r.id}">Decline</button>
-        </div>` : ''}</td>
-    </tr>`).join('') : empty(7, 'No requests yet. They show up here when someone uses the booking form.');
-
-  document.getElementById('appt-rows').innerHTML = appts.length ? appts.map((a) => `
-    <tr>
-      <td>${fmt(a.starts_at)}</td>
-      <td>${esc(a.client_name)}<br><a href="tel:${esc(a.client_phone)}">${esc(a.client_phone)}</a></td>
-      <td>${esc(a.duration_min)} min ${esc(a.service)}</td>
-      <td>${a.price ? '$' + esc(a.price) : ''}</td>
-      <td>${a.reminder_sent_at ? fmt(a.reminder_sent_at) : 'Not yet'}</td>
-      <td><select data-appt="${a.id}" aria-label="Status">
-        ${['scheduled', 'done', 'cancelled', 'no_show'].map((s) => `<option value="${s}" ${s === a.status ? 'selected' : ''}>${s.replace('_', ' ')}</option>`).join('')}
-      </select></td>
-    </tr>`).join('') : empty(6, 'No appointments yet. Confirm a request to add one.');
-
-  document.getElementById('client-rows').innerHTML = clients.length ? clients.map((c) => `
-    <tr><td>${esc(c.full_name) || '<span class="opt">No name yet</span>'}</td><td>${esc(c.email)}</td><td>${esc(c.phone)}</td>
-    <td>${esc(c.pressure_pref)}</td><td>${esc(c.health_notes)}</td><td>${day(c.created_at)}</td></tr>`).join('')
-    : empty(6, 'No client profiles yet.');
-
-  document.getElementById('note-rows').innerHTML = sent.length ? sent.map((n) => `
-    <tr><td>${fmt(n.created_at)}</td><td>${esc(n.channel)}</td><td>${esc(n.sent_to)}</td>
-    <td><span class="tag ${n.status === 'sent' ? 'confirmed' : 'declined'}">${esc(n.status)}</span>${n.error ? `<br><small>${esc(n.error.slice(0, 120))}</small>` : ''}</td></tr>`).join('')
-    : empty(4, 'No reminders sent yet. They go out automatically the day before each visit.');
-}
-
-document.addEventListener('click', async (e) => {
-  const confirmId = e.target.dataset.confirm, declineId = e.target.dataset.decline;
-  if (declineId) {
-    await sb.from('booking_requests').update({ status: 'declined' }).eq('id', declineId);
-    return load();
-  }
-  if (confirmId) {
-    const r = requests.find((x) => String(x.id) === confirmId);
-    const t = document.getElementById('t' + confirmId).value;
-    if (!t) return alert('Pick a time first.');
-    const { error } = await sb.from('appointments').insert({
-      booking_id: r.id, user_id: r.user_id, client_name: r.name, client_phone: r.phone, client_email: r.email,
-      service: r.service, duration_min: r.duration_min, price: PRICES[r.duration_min], starts_at: new Date(t).toISOString(),
-    });
-    if (error) return alert(error.message);
-    await sb.from('booking_requests').update({ status: 'confirmed' }).eq('id', r.id);
-    load();
-  }
-});
-
-document.addEventListener('change', async (e) => {
-  const id = e.target.dataset.appt;
-  if (id) await sb.from('appointments').update({ status: e.target.value }).eq('id', id);
-});
 </script>
 </body>
 </html>

@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review your visit | Namaste Nirvana Massage</title>
+<meta name="description" content="Tell us how your massage with Nikesh went.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="review.css">
+</head>
+<body>
+<header class="site-header">
+  <nav class="wrap nav" aria-label="Main">
+    <a class="logo" href="./">Namaste Nirvana</a>
+    <a class="btn small" href="./#book">Book</a>
+  </nav>
+</header>
+
+<main class="review-page">
+  <section class="review-card" id="card">
+    <div>
+      <h1>How was your visit?</h1>
+      <p class="lead">Your words help others decide, and help Nikesh keep improving. It takes a minute.</p>
+    </div>
+
+    <form id="review" novalidate>
+      <div class="field">
+        <span class="field-label" id="rating-label">Your rating</span>
+        <div class="stars" role="radiogroup" aria-labelledby="rating-label">
+          <input type="radio" name="rating" id="s5" value="5"><label for="s5" title="Wonderful" aria-label="5 stars">★</label>
+          <input type="radio" name="rating" id="s4" value="4"><label for="s4" title="Very good" aria-label="4 stars">★</label>
+          <input type="radio" name="rating" id="s3" value="3"><label for="s3" title="Good" aria-label="3 stars">★</label>
+          <input type="radio" name="rating" id="s2" value="2"><label for="s2" title="Fair" aria-label="2 stars">★</label>
+          <input type="radio" name="rating" id="s1" value="1"><label for="s1" title="Poor" aria-label="1 star">★</label>
+        </div>
+        <p class="star-hint" id="star-hint"></p>
+      </div>
+
+      <div class="row">
+        <label>Your name<input name="name" maxlength="60" autocomplete="name" required></label>
+        <label>Massage you had <span class="opt">(optional)</span>
+          <select name="service">
+            <option value="">Not sure</option>
+            <option>Deep tissue</option>
+            <option>Swedish relaxation</option>
+            <option>Sports and recovery</option>
+          </select>
+        </label>
+      </div>
+
+      <label>Your review
+        <textarea name="body" rows="6" maxlength="1500" placeholder="What stood out? How did you feel afterward?" required></textarea>
+      </label>
+      <p class="counter"><span id="count">0</span> / 1500</p>
+
+      <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
+      <button class="btn" type="submit"><span class="btn-label">Send review</span></button>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <section id="others" aria-live="polite">
+    <h2>What others said</h2>
+    <ul class="review-list" id="list" aria-busy="true">
+      <li class="skeleton review-skeleton"></li>
+      <li class="skeleton review-skeleton"></li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>Namaste Nirvana Massage by Nikesh Pokhrel</span>
+    <span>23 Logwood St, South Burlington, VT 05403. <a href="tel:+18023739672">(802) 373-9672</a></span>
+    <small class="credit">Developed by Beldangi Fax Machine</small>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="supabase-client.js"></script>
+<script>
+const form = document.getElementById('review');
+const statusEl = document.getElementById('status');
+const button = form.querySelector('button[type=submit]');
+const label = button.querySelector('.btn-label');
+const HINTS = { 1: 'Poor', 2: 'Fair', 3: 'Good', 4: 'Very good', 5: 'Wonderful' };
+
+form.querySelectorAll('input[name=rating]').forEach((r) =>
+  r.addEventListener('change', () => { document.getElementById('star-hint').textContent = HINTS[r.value]; }));
+form.body.addEventListener('input', () => { document.getElementById('count').textContent = form.body.value.length; });
+
+// Prefill the name when signed in.
+currentUser().then(async (u) => {
+  if (!u) return;
+  const { data: p } = await sb.from('profiles').select('full_name').eq('id', u.id).single();
+  if (p?.full_name && !form.name.value) form.name.value = p.full_name;
+});
+
+function problem() {
+  if (!form.rating.value) return 'Pick a star rating first.';
+  if (!form.name.value.trim()) return 'Please add your name.';
+  if (form.body.value.trim().length < 10) return 'Please write a little more (at least 10 characters).';
+  if (/https?:\/\/|www\./i.test(form.body.value)) return 'Please leave out links and web addresses.';
+  return null;
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = problem();
+  statusEl.className = 'status' + (msg ? ' error' : '');
+  statusEl.textContent = msg ?? '';
+  if (msg) return;
+
+  button.disabled = true; button.classList.add('loading'); label.textContent = 'Sending';
+  let res, out = {};
+  try {
+    const { data: s } = await sb.auth.getSession();
+    res = await fetch(`${SUPABASE_URL}/functions/v1/submit-review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${s.session?.access_token ?? SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({
+        rating: Number(form.rating.value), name: form.name.value, service: form.service.value,
+        body: form.body.value, website: form.website.value,
+      }),
+    });
+    out = await res.json().catch(() => ({}));
+  } catch { /* handled below */ }
+  button.disabled = false; button.classList.remove('loading'); label.textContent = 'Send review';
+
+  if (!res || !res.ok) {
+    statusEl.className = 'status error';
+    statusEl.textContent = out.error ?? 'That didn\'t go through. Please try again in a moment.';
+    return;
+  }
+  document.getElementById('card').className = 'review-card thanks';
+  document.getElementById('card').innerHTML =
+    `<h2>Thank you</h2><p class="lead">${esc(out.message ?? 'Your review was received.')}</p><a class="btn" href="./">Back to the site</a>`;
+});
+
+// Approved reviews (first name + last initial only), with skeletons while loading.
+(async () => {
+  const list = document.getElementById('list');
+  const { data, error } = await sb.rpc('public_reviews');
+  list.removeAttribute('aria-busy');
+  if (error || !data?.length) {
+    list.innerHTML = '<li class="empty">No reviews yet. Yours could be the first.</li>';
+    return;
+  }
+  list.innerHTML = data.map((r) => `<li>
+      <span class="rv-stars" aria-label="${r.rating} out of 5 stars">${'★'.repeat(r.rating)}<span style="opacity:.25">${'★'.repeat(5 - r.rating)}</span></span>
+      <p class="rv-body">${esc(r.body)}</p>
+      <span class="rv-meta">${esc(r.name)}${r.service ? ' · ' + esc(r.service) : ''} · ${new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+    </li>`).join('');
+})();
+</script>
+</body>
+</html>

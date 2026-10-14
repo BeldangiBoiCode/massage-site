@@ -19,6 +19,9 @@ bookings go browser -> edge fn `submit-booking` (validation + IP/phone rate limi
 -> `appointments` (or declined). Public availability = `busy_slots(d date)` (no names). Time off = `time_off` (admin page `admin-timeoff.html`).
 Nikesh's calendar: `calendar-sync` pulls ICS busy times into `external_busy`; `calendar-feed` publishes appointments. Tokens live in `app_settings` (no dashboard secrets).
 Auth pages: `auth.html`, `forgot-password.html`, `reset-password.html`, `account-security.html`, `admin-invite.html` (+ `auth.js`, `auth-extra.css`).
+Roles: the owner (in `admins`) only uses `admin.html` (phone-first cards: schedule, customers + payments + discounts, reviews, breaks); customers only use `account.html`. Each page redirects the other role away.
+Reviews: `review.html` -> edge fn `submit-review` (validation, link/spam block, IP limit) -> `reviews` table (pending until approved on the admin page) -> public sees approved via `public_reviews()`.
+Payments (`payments`) and discount codes (`discounts`) are admin-only; discounts are sent through the phone's text/email apps (no sending service needed).
 The booking form no longer inserts into `booking_requests` directly (RLS blocks it). Do not edit `supabase/` or the data logic in `app.js` when restyling.
 
 ## Key files

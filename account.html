@@ -75,8 +75,8 @@ let user;
 (async () => {
   user = await currentUser();
   if (!user) return location.replace('auth.html');
+  if (await isAdmin()) return location.replace('admin.html'); // the owner only uses the admin page
   document.querySelector('main').hidden = false;
-  if (await isAdmin()) document.getElementById('admin-link').hidden = false;
 
   const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).single();
   if (p) {
