@@ -1,19 +1,22 @@
 # Handoff: what changed and how it all connects
 
 > ## READ FIRST: 2026-10-14 update (big)
-> A lot was added on 2026-10-14. **The code is pushed, but the database changes and edge functions are NOT applied to the live
-> Supabase project yet.** Until they are, parts of the live site degrade (see "Apply order"). Do not "fix" these by deleting
-> the new code; apply the migrations. If you are a Claude session starting up: read this whole section before touching anything.
+> A lot was added on 2026-10-14. **Update, same day: the four new migrations are now APPLIED to the live Supabase project and all five
+> changed/new edge functions are DEPLOYED** (`submit-review`, `calendar-feed`, `calendar-connect`, `google-callback`, `calendar-push`,
+> all `--no-verify-jwt`). They were applied with the Supabase tools, so the live migration list has its own version numbers
+> (e.g. `staff_role`, `profiles_tips_suggestions`, `break_15_quarter_hours`, `loyalty_points`). **Do NOT run `supabase db push` again for
+> these files; they would try to create things that already exist.** For any future change, add a new migration file and apply only that.
+> Checked after applying: all tables/functions/triggers/cron jobs exist, the `avatars` bucket is private, no overlapping appointments
+> existed, the security advisor shows nothing new, and the public endpoints reject anonymous callers as intended.
 >
-> ### Apply order (Austin runs these, or says go ahead)
-> 1. `supabase db push` applies, in order: `20261014000000_staff_role.sql`, `20261014000100_profiles_tips_suggestions.sql`,
->    `20261014000200_break_15_quarter_hours.sql`, `20261014000300_loyalty_points.sql`.
-> 2. Deploy functions with `--no-verify-jwt`: `calendar-feed`, `submit-review`, `calendar-connect`, `google-callback`, `calendar-push`.
-> 3. Add front-desk staff by SQL (example at the top of the staff migration).
-> 4. Google Calendar sign-in needs a Google Cloud OAuth client: set secrets `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, and add the
->    redirect URI `<project-url>/functions/v1/google-callback`. Apple uses an app-specific password (no setup needed).
-> 5. If the database is still on the old rules, the browser now offers :15/:45 start times and a 15 minute break that the old server
->    rejects (old rule: 20 min break, :00/:30 only). Migration `...000200` fixes that. Review submission also needs migration `...000100`.
+> ### Still to do by hand (not code)
+> 1. Add each front-desk employee after they create an account:
+>    `insert into public.staff (user_id, full_name) select id, 'Name' from auth.users where email = 'them@example.com';`
+> 2. Google Calendar sign-in needs a Google Cloud OAuth client: set function secrets `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, and add the
+>    redirect URI `https://aryarbjftnhyayhdlapw.supabase.co/functions/v1/google-callback`. Apple uses an app-specific password (no setup).
+> 3. The calendar-connect / calendar-push / google-callback code has been deployed but **never run against real Google or Apple accounts**.
+>    Test the connect flow from Studio > Settings and watch `calendar_connections.last_error`.
+> 4. Supabase dashboard: turn on leaked-password protection (advisor warning).
 >
 > ### What was added (all in this repo)
 > | Area | Files | Notes |

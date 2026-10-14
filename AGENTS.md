@@ -8,8 +8,8 @@ the booking/chat/review flows, which ids and class names the scripts depend on, 
 - Backend (Supabase tables, auth, edge functions, cron, chat, bookings, admin CRM data logic): owned by Austin. On 2026-10-14 he asked
   for backend features directly, so those were built (see HANDOFF.md) and backend edits are fine when he asks. When you are only
   restyling, leave `supabase/`, `supabase-client.js`, `chat.js`, the inline `<script>` blocks and the data/booking logic in `app.js` alone.
-  **Never run `supabase db push` or deploy functions unless Austin says so.** Several migrations and functions are written but not yet applied
-  (see the apply order in HANDOFF.md). New pages: `staff.html` (front desk), rebuilt `account.html`. Staff, admin and customer all have different views.
+  **Never run `supabase db push` or deploy functions unless Austin says so.** The 2026-10-14 migrations and functions ARE applied/deployed already
+  (see HANDOFF.md; do not re-run them). New pages: `staff.html` (front desk), rebuilt `account.html`. Staff, admin and customer all have different views.
 - After `git pull`, the site is already connected to the live backend. You can restyle everything and it keeps working,
   as long as you keep the ids, field names, `data-*` attributes and class names listed in `HANDOFF.md`.
 
