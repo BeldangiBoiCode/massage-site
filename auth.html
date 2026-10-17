@@ -113,7 +113,7 @@ form.addEventListener('submit', (e) => {
         email, password,
         options: { emailRedirectTo: redirectTo, data: { full_name: form.full_name.value.trim() || undefined } },
       });
-      if (error) return say(statusEl, error.message, true);
+      if (error) return say(statusEl, error.status >= 500 ? 'We couldn\'t send the confirmation email. Try again soon.' : error.message, true);
       // With email confirmation on, there's no session yet. With it off, they're already in.
       if (data.session) return location.replace('account.html');
       return say(statusEl, `Almost there. Check ${email} to confirm your account.`);
