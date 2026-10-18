@@ -2,10 +2,6 @@
 const SUPABASE_URL = 'https://aryarbjftnhyayhdlapw.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_7EzjaIpokmu6ma6io-CO4g_qdEod28G';
 
-// Always use https on the real site, so email links match Supabase's allowed redirect URLs.
-if (location.protocol === 'http:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-  location.replace('https://' + location.host + location.pathname + location.search + location.hash);
-}
 // A reset or invite link that lands on the wrong page (e.g. the home page) still goes to the password page.
 if (/type=(recovery|invite)/.test(location.hash) && !location.pathname.endsWith('reset-password.html')) {
   location.replace(new URL('reset-password.html', location.href).pathname + location.search + location.hash);
