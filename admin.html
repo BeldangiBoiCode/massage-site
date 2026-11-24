@@ -515,7 +515,7 @@ async function renderPos() {
       <p class="meta">${esc(when(t.created))} · ${esc(t.source_label || t.tender)} · ${esc(String(t.type || '').toLowerCase())}${t.status && t.status !== 'succeeded' ? ' · ' + esc(t.status) : ''}</p></article>`).join('');
     const people = (cu.data || []).map((c) => `<article class="a-card"><div class="a-top"><b>${esc(c.name)}</b></div>
       <p class="meta">${[c.phone, c.email].filter(Boolean).map(esc).join(' · ') || 'No contact info'}</p></article>`).join('');
-    S.pos = { html: `<h2 class="sec-title">Recent POS sales</h2>${sales || '<p class="meta">No POS sales yet.</p>'}
+    S.pos = { html: `<div class="acts"><button class="act" type="button" data-act="pos-test">Run $10 test sale</button></div><h2 class="sec-title">Recent POS sales</h2>${sales || '<p class="meta">No POS sales yet.</p>'}
       <h2 class="sec-title">POS customers (${esc(cu.total ?? (cu.data || []).length)})</h2>${people || '<p class="meta">No POS customers yet.</p>'}` };
     box.innerHTML = S.pos.html;
   } catch (e) {
@@ -638,6 +638,12 @@ document.addEventListener('click', (e) => {
   if (!el) return;
   const { act, id, to } = el.dataset;
   guard(async () => {
+    if (act === 'pos-test') {
+      el.disabled = true;
+      try { await posCall({ action: 'test_sale' }); toast('<span>Test sale went through.</span>'); S.pos = null; render(); }
+      finally { el.disabled = false; }
+      return;
+    }
     if (act === 'pos-retry') { S.pos = null; render(); return; }
     if (act === 'tab') { S.tab = el.dataset.tab; render(); window.scrollTo({ top: 0 }); }
     else if (act === 'when') { S.when = el.dataset.when; renderSchedule(); }
