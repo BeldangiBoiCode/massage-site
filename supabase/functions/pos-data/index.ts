@@ -1,6 +1,6 @@
 // Admin-only: reads customers + sales from the Merchant360 POS and hands them to the admin page.
 // Safety: the caller must be signed in AND be in the `admins` table (checked with the service role).
-// The Merchant360 key lives only in the secret M360_API_KEY and never reaches the browser.
+// The Merchant360 key lives only in the secret NamasteNiravanaMassage and never reaches the browser.
 // Only a fixed list of read-only (GET) actions is allowed, so the page can't ask for anything else.
 // verify_jwt = false because we check the token ourselves, so CORS preflight works.
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
@@ -73,7 +73,8 @@ Deno.serve(async (req) => {
   const { data: ok } = await db.rpc('rate_limit_hit', { p_key: `pos:${u.user.id}`, p_max: 120, p_window_secs: 600 });
   if (ok === false) return reply({ error: 'Too many POS requests. Wait a few minutes.' }, 429);
 
-  const key = Deno.env.get('M360_API_KEY');
+  // The key is stored as the secret named NamasteNiravanaMassage (M360_API_KEY also works).
+  const key = Deno.env.get('NamasteNiravanaMassage') ?? Deno.env.get('M360_API_KEY');
   if (!key) return reply({ error: 'POS key is not set up yet.', code: 'not_configured' }, 503);
 
   let body: Record<string, unknown>;
