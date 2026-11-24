@@ -38,6 +38,7 @@
     <button type="button" role="tab" data-act="tab" data-tab="customers">Clients</button>
     <button type="button" role="tab" data-act="tab" data-tab="chat">Chat</button>
     <button type="button" role="tab" data-act="tab" data-tab="money">Money</button>
+    <button type="button" role="tab" data-act="tab" data-tab="pos">POS</button>
     <button type="button" role="tab" data-act="tab" data-tab="breaks">Breaks</button>
     <button type="button" role="tab" data-act="tab" data-tab="reviews">Reviews</button>
   </nav>
@@ -46,6 +47,7 @@
   <section id="p-customers" role="tabpanel" hidden><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></section>
   <section id="p-chat" role="tabpanel" hidden><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></section>
   <section id="p-money" role="tabpanel" hidden><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></section>
+  <section id="p-pos" role="tabpanel" hidden><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></section>
   <section id="p-breaks" role="tabpanel" hidden><div class="skeleton sk-card"></div></section>
   <section id="p-reviews" role="tabpanel" hidden><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></section>
 </main>
@@ -486,6 +488,42 @@ function renderTabsOnly() {
 }
 
 /* ---------- money + reports ---------- */
+/* ---------- POS (Merchant360) ---------- */
+// Asks the pos-data edge function (admin-only, holds the POS key) for one read-only POS action.
+async function posCall(body) {
+  const { data, error } = await sb.functions.invoke('pos-data', { body });
+  if (error) {
+    let msg = 'The POS could not be reached.';
+    try { msg = (await error.context.json()).error || msg; } catch { /* keep the plain message */ }
+    throw new Error(msg);
+  }
+  return data;
+}
+
+// Shows recent POS sales and POS customers. Loads once per visit to the tab, with a skeleton first.
+async function renderPos() {
+  const box = $('#p-pos');
+  if (S.pos?.loading) return;
+  if (S.pos?.html) { box.innerHTML = S.pos.html; return; }
+  S.pos = { loading: true };
+  box.innerHTML = '<div class="skeleton sk-card"></div><div class="skeleton sk-card"></div>';
+  try {
+    const [tx, cu] = await Promise.all([posCall({ action: 'transactions', page_size: 25 }), posCall({ action: 'customers', page_size: 25 })]);
+    const cents = (n) => '$' + (Number(n) / 100).toFixed(2);
+    const when = (iso) => new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    const sales = (tx.data || []).map((t) => `<article class="a-card"><div class="a-top"><b>${esc(t.customer?.name || 'Walk-in')}</b><span>${cents(t.amount)}</span></div>
+      <p class="meta">${esc(when(t.created))} · ${esc(t.source_label || t.tender)} · ${esc(String(t.type || '').toLowerCase())}${t.status && t.status !== 'succeeded' ? ' · ' + esc(t.status) : ''}</p></article>`).join('');
+    const people = (cu.data || []).map((c) => `<article class="a-card"><div class="a-top"><b>${esc(c.name)}</b></div>
+      <p class="meta">${[c.phone, c.email].filter(Boolean).map(esc).join(' · ') || 'No contact info'}</p></article>`).join('');
+    S.pos = { html: `<h2 class="sec-title">Recent POS sales</h2>${sales || '<p class="meta">No POS sales yet.</p>'}
+      <h2 class="sec-title">POS customers (${esc(cu.total ?? (cu.data || []).length)})</h2>${people || '<p class="meta">No POS customers yet.</p>'}` };
+    box.innerHTML = S.pos.html;
+  } catch (e) {
+    S.pos = null;
+    box.innerHTML = `<article class="a-card attn"><p>${esc(e.message)}</p><div class="acts"><button class="act" type="button" data-act="pos-retry">Try again</button></div></article>`;
+  }
+}
+
 function renderMoney() {
   const pm = payMap();
   const pad2 = (n) => String(n).padStart(2, '0');
@@ -587,8 +625,8 @@ function render() {
     const n = b.dataset.tab === 'schedule' ? S.reqs.length : b.dataset.tab === 'reviews' ? pending : b.dataset.tab === 'chat' ? unreadAll : 0;
     if (n) b.insertAdjacentHTML('beforeend', `<span class="dot">${n}</span>`);
   });
-  for (const t of ['schedule', 'customers', 'chat', 'money', 'reviews', 'breaks']) $(`#p-${t}`).hidden = t !== S.tab;
-  ({ schedule: renderSchedule, customers: renderCustomers, chat: renderChat, money: renderMoney, reviews: renderReviews, breaks: renderBreaks })[S.tab]();
+  for (const t of ['schedule', 'customers', 'chat', 'money', 'pos', 'reviews', 'breaks']) $(`#p-${t}`).hidden = t !== S.tab;
+  ({ schedule: renderSchedule, customers: renderCustomers, chat: renderChat, money: renderMoney, pos: renderPos, reviews: renderReviews, breaks: renderBreaks })[S.tab]();
 }
 
 /* ---------- actions ---------- */
@@ -600,6 +638,7 @@ document.addEventListener('click', (e) => {
   if (!el) return;
   const { act, id, to } = el.dataset;
   guard(async () => {
+    if (act === 'pos-retry') { S.pos = null; render(); return; }
     if (act === 'tab') { S.tab = el.dataset.tab; render(); window.scrollTo({ top: 0 }); }
     else if (act === 'when') { S.when = el.dataset.when; renderSchedule(); }
     else if (act === 'toast-close') $('#toast').hidden = true;
