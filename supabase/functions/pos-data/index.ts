@@ -1,7 +1,7 @@
 // Admin-only: reads customers + sales from the Merchant360 POS and hands them to the admin page.
 // Safety: the caller must be signed in AND be in the `admins` table (checked with the service role).
 // The Merchant360 key lives only in the secret MERCHANT and never reaches the browser.
-// Only a fixed list of read-only (GET) actions is allowed, plus one fixed $10 test sale that needs a test key.
+// Only a fixed list of read-only (GET) actions is allowed.
 // verify_jwt = false because we check the token ourselves, so CORS preflight works.
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
@@ -79,27 +79,13 @@ Deno.serve(async (req) => {
 
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return reply({ error: 'Invalid request.' }, 400); }
-  // The one write action: a fixed $10 sale with the public test card. It only runs with a TEST key,
-  // so a live key can never be charged from here.
-  const isTestSale = body.action === 'test_sale';
-  if (isTestSale && !key.startsWith('m360_test_')) {
-    return reply({ error: 'Test sales only run with a test key (m360_test_...). This key is live, so nothing was charged.' }, 403);
-  }
-  const path = isTestSale ? '/payments' : buildPath(body);
+  const path = buildPath(body);
   if (!path) return reply({ error: 'Bad request.' }, 400);
 
   let res: Response;
   try {
     res = await fetch(M360_BASE + path, {
-      method: isTestSale ? 'POST' : 'GET',
-      headers: {
-        Authorization: `Bearer ${key}`, Accept: 'application/json',
-        ...(isTestSale ? { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() } : {}),
-      },
-      body: isTestSale ? JSON.stringify({
-        amount: 1000, currency: 'usd', description: 'Namaste Nirvana $10 test sale',
-        card: { number: '4242424242424242', exp_month: 12, exp_year: 2030, cvv: '123' },
-      }) : undefined,
+      headers: { Authorization: `Bearer ${key}`, Accept: 'application/json' },
       signal: AbortSignal.timeout(15000),
     });
   } catch {

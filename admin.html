@@ -500,28 +500,80 @@ async function posCall(body) {
   return data;
 }
 
-// Shows recent POS sales and POS customers. Loads once per visit to the tab, with a skeleton first.
-async function renderPos() {
-  const box = $('#p-pos');
-  if (S.pos?.loading) return;
-  if (S.pos?.html) { box.innerHTML = S.pos.html; return; }
-  S.pos = { loading: true };
-  box.innerHTML = '<div class="skeleton sk-card"></div><div class="skeleton sk-card"></div>';
-  try {
-    const [tx, cu] = await Promise.all([posCall({ action: 'transactions', page_size: 25 }), posCall({ action: 'customers', page_size: 25 })]);
-    const cents = (n) => '$' + (Number(n) / 100).toFixed(2);
-    const when = (iso) => new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-    const sales = (tx.data || []).map((t) => `<article class="a-card"><div class="a-top"><b>${esc(t.customer?.name || 'Walk-in')}</b><span>${cents(t.amount)}</span></div>
-      <p class="meta">${esc(when(t.created))} · ${esc(t.source_label || t.tender)} · ${esc(String(t.type || '').toLowerCase())}${t.status && t.status !== 'succeeded' ? ' · ' + esc(t.status) : ''}</p></article>`).join('');
-    const people = (cu.data || []).map((c) => `<article class="a-card"><div class="a-top"><b>${esc(c.name)}</b></div>
-      <p class="meta">${[c.phone, c.email].filter(Boolean).map(esc).join(' · ') || 'No contact info'}</p></article>`).join('');
-    S.pos = { html: `<div class="acts"><button class="act" type="button" data-act="pos-test">Run $10 test sale</button></div><h2 class="sec-title">Recent POS sales</h2>${sales || '<p class="meta">No POS sales yet.</p>'}
-      <h2 class="sec-title">POS customers (${esc(cu.total ?? (cu.data || []).length)})</h2>${people || '<p class="meta">No POS customers yet.</p>'}` };
-    box.innerHTML = S.pos.html;
-  } catch (e) {
-    S.pos = null;
-    box.innerHTML = `<article class="a-card attn"><p>${esc(e.message)}</p><div class="acts"><button class="act" type="button" data-act="pos-retry">Try again</button></div></article>`;
+// Finds the site account (profile) for a POS customer by email, then by phone digits. Null = no account yet.
+function profileForPos(c) {
+  if (!c) return null;
+  const email = String(c.email || '').trim().toLowerCase();
+  const digits = String(c.phone || '').replace(/\D/g, '').slice(-10);
+  return S.profiles.find((p) => (email && String(p.email || '').toLowerCase() === email)
+    || (digits.length === 10 && String(p.phone || '').replace(/\D/g, '').slice(-10) === digits)) || null;
+}
+
+// One POS sale card: who paid, how much, who rang it up, and whether they still need a site account.
+function posSaleCard(t) {
+  const cents = (n) => '$' + (Number(n) / 100).toFixed(2);
+  const when = new Date(t.created).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const c = t.customer;
+  const prof = profileForPos(c);
+  const bad = ['failed', 'voided', 'canceled', 'returned'].includes(t.status);
+  const refunded = t.type === 'REFUND' || Number(t.amount_refunded) > 0;
+  const first = String(c?.name || '').split(' ')[0] || 'there';
+  const invite = `Hi ${first}, it's Nikesh at Namaste Nirvana. Make your free account to chat with me and manage your visits: ${SITE_BASE}auth.html`;
+  let badge = '';
+  if (c && (c.email || c.phone || c.name)) {
+    badge = prof ? '<span class="meta">Has an account</span>'
+      : `<div class="acts"><span class="meta"><b>Needs an account</b></span>
+         ${c.phone ? `<a class="act" href="${attr(smsHref(c.phone, invite))}">Text invite</a>` : ''}
+         ${c.email ? `<a class="act" href="${attr(mailHref(c.email, 'Your Namaste Nirvana account', invite))}">Email invite</a>` : ''}</div>`;
   }
+  return `<article class="a-card ${bad ? 'attn' : ''}"><div class="a-top"><b>${esc(c?.name || 'Walk-in (no name)')}</b><span>${refunded ? 'Refund ' : ''}${cents(t.amount)}</span></div>
+    <p class="meta">${esc(when)} · ${esc(t.source_label || t.tender)}${t.card?.last4 ? ' ····' + esc(t.card.last4) : ''} · rung up by ${esc(t.run_by || 'unknown')}${bad ? ' · ' + esc(t.status) : ''}</p>
+    ${[c?.phone, c?.email].filter(Boolean).length ? `<p class="meta">${[c.phone, c.email].filter(Boolean).map(esc).join(' · ')}</p>` : ''}${badge}</article>`;
+}
+
+// Loads POS sales + customers. Silent refreshes keep what is on screen (no skeleton flash).
+async function loadPos(silent) {
+  const box = $('#p-pos');
+  if (S.posBusy) return;
+  S.posBusy = true;
+  if (!silent) box.innerHTML = '<div class="skeleton sk-card"></div><div class="skeleton sk-card"></div>';
+  try {
+    const [tx, cu] = await Promise.all([posCall({ action: 'transactions', page_size: 50 }), posCall({ action: 'customers', page_size: 25 })]);
+    S.posData = { tx: tx.data || [], cu: cu.data || [], total: cu.total, at: new Date() };
+    S.posErr = null;
+  } catch (e) {
+    S.posErr = e.message;
+  } finally {
+    S.posBusy = false;
+  }
+  if (S.tab === 'pos') paintPos();
+}
+
+// Paints whatever POS data we have (or the error).
+function paintPos() {
+  const box = $('#p-pos');
+  const d = S.posData;
+  if (!d) {
+    box.innerHTML = `<article class="a-card attn"><p>${esc(S.posErr || 'Loading...')}</p><div class="acts"><button class="act" type="button" data-act="pos-retry">Try again</button></div></article>`;
+    return;
+  }
+  const people = d.cu.map((c) => {
+    const has = profileForPos(c);
+    return `<article class="a-card"><div class="a-top"><b>${esc(c.name)}</b><span class="meta">${has ? 'Has an account' : 'No account'}</span></div>
+      <p class="meta">${[c.phone, c.email].filter(Boolean).map(esc).join(' · ') || 'No contact info'}</p></article>`;
+  }).join('');
+  box.innerHTML = `<p class="meta">Live from the POS${S.posErr ? ' (last refresh failed: ' + esc(S.posErr) + ')' : ''} · updated ${d.at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}</p>
+    <h2 class="sec-title">Recent POS sales</h2>${d.tx.map(posSaleCard).join('') || '<p class="meta">No POS sales yet.</p>'}
+    <h2 class="sec-title">POS customers (${esc(d.total ?? d.cu.length)})</h2>${people || '<p class="meta">No POS customers yet.</p>'}`;
+}
+
+// POS tab: show what we have right away, then fetch. A timer refreshes it every 20s while the tab is open.
+function renderPos() {
+  if (S.posData) paintPos(); else loadPos(false);
+  if (!S.posTimer) {
+    S.posTimer = setInterval(() => { if (S.tab === 'pos' && !document.hidden) loadPos(true); }, 20000);
+  }
+  if (S.posData && !S.posBusy && Date.now() - S.posData.at.getTime() > 5000) loadPos(true);
 }
 
 function renderMoney() {
@@ -638,13 +690,7 @@ document.addEventListener('click', (e) => {
   if (!el) return;
   const { act, id, to } = el.dataset;
   guard(async () => {
-    if (act === 'pos-test') {
-      el.disabled = true;
-      try { await posCall({ action: 'test_sale' }); toast('<span>Test sale went through.</span>'); S.pos = null; render(); }
-      finally { el.disabled = false; }
-      return;
-    }
-    if (act === 'pos-retry') { S.pos = null; render(); return; }
+    if (act === 'pos-retry') { S.posData = null; render(); return; }
     if (act === 'tab') { S.tab = el.dataset.tab; render(); window.scrollTo({ top: 0 }); }
     else if (act === 'when') { S.when = el.dataset.when; renderSchedule(); }
     else if (act === 'toast-close') $('#toast').hidden = true;
