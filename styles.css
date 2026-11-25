@@ -535,3 +535,28 @@ body::after { right: 0; transform: scaleX(-1); }
   .bk-figure { width: min(100%, 280px); max-height: 56vh; }
   .bk-nav { position: sticky; bottom: 10px; z-index: 3; }
 }
+
+/* Time dial (replaces the pill grid; the pills stay hidden as the source of truth) */
+.slots.bk-slots-hidden { display: none; }
+.bk-time { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 220px); gap: 16px; align-items: center; }
+.bk-time[hidden] { display: none; }
+.bk-wheel-wrap { position: relative; display: grid; justify-items: center; gap: 4px; }
+.bk-wheel { position: relative; width: 100%; height: 220px; overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none; perspective: 600px; padding: 88px 0; border-radius: 20px; outline: none;
+  background: linear-gradient(var(--linen), var(--linen)) padding-box, linear-gradient(180deg, transparent, rgb(91 138 120 / .25), transparent) border-box; border: 1px solid transparent;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 30%, #000 70%, transparent); mask-image: linear-gradient(180deg, transparent, #000 30%, #000 70%, transparent); }
+.bk-wheel::-webkit-scrollbar { display: none; }
+.bk-wheel-item { height: 44px; display: grid; place-items: center; scroll-snap-align: center; font: 500 1.25rem "Figtree", sans-serif; color: var(--stone); cursor: pointer; transform-origin: center; transition: color .2s ease; }
+.bk-wheel-item.mid { color: var(--pine); font-weight: 700; font-size: 1.45rem; }
+.bk-wheel-wrap::before { content: ""; position: absolute; left: 10px; right: 10px; top: 50%; height: 48px; transform: translateY(-50%); border-radius: 14px; background: linear-gradient(90deg, rgb(91 138 120 / .16), rgb(30 59 53 / .1)); box-shadow: inset 0 0 0 1px rgb(30 59 53 / .14); pointer-events: none; }
+.bk-wheel:focus-visible { box-shadow: 0 0 0 3px var(--eucalyptus); }
+.bk-wheel-btn { width: 44px; height: 30px; border: 0; border-radius: 999px; background: transparent; color: var(--pine); font-size: 1.3rem; line-height: 1; cursor: pointer; transition: background .2s ease; }
+.bk-wheel-btn:hover { background: var(--sea-glass); }
+.bk-type { display: grid; gap: 6px; font-weight: 500; font-size: .95rem; }
+.bk-type input { font: 600 1.15rem "Figtree", sans-serif; min-height: 52px; }
+.bk-type-note { grid-column: 1 / -1; min-height: 0; }
+.bk-type-note:empty { display: none; }
+@media (max-width: 560px) {
+  .bk-time { grid-template-columns: 1fr; }
+  .bk-wheel { height: 200px; padding: 78px 0; }
+}
+@media (prefers-reduced-motion: reduce) { .bk-wheel { scroll-behavior: auto; } }

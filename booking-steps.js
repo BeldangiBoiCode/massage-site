@@ -30,7 +30,7 @@
     submit.hidden = at !== steps.length - 1;
     status.textContent = '';
     status.className = 'status';
-    if (at === steps.length - 1) writeSummary();
+    if (at === steps.length - 1) { writeSummary(); form.dispatchEvent(new Event('bk-time-shown')); }
     if (scroll) form.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
     steps[at].querySelector('.bk-q')?.focus({ preventScroll: true });
   }
@@ -141,6 +141,117 @@
   }));
   ['conditions', 'allergies'].forEach((g) => form[`${g}_other`].addEventListener('input', () => syncGroup(g)));
   form.addEventListener('reset', () => setTimeout(() => { chips.forEach((c) => c.classList.remove('on')); paintChips(); }, 0));
+
+  /* ---------- Time dial ---------- */
+  // app.js still draws the open times as buttons in #slots and handles the click.
+  // We hide those buttons and show a scroll dial + a "type a time" box; both just click the matching button.
+  const slotsEl = document.getElementById('slots');
+  const dial = document.createElement('div');
+  dial.className = 'bk-time';
+  dial.hidden = true;
+  dial.innerHTML = `
+    <div class="bk-wheel-wrap">
+      <button type="button" class="bk-wheel-btn" data-move="-1" aria-label="Earlier time">&#8963;</button>
+      <div class="bk-wheel" id="bk-wheel" role="listbox" tabindex="0" aria-label="Open times"></div>
+      <button type="button" class="bk-wheel-btn" data-move="1" aria-label="Later time">&#8964;</button>
+    </div>
+    <label class="bk-type">Or type a time<input type="time" id="bk-type" step="900"></label>
+    <p class="hint bk-type-note" id="bk-type-note" aria-live="polite"></p>`;
+  slotsEl.after(dial);
+  const wheel = dial.querySelector('#bk-wheel');
+  const typeBox = dial.querySelector('#bk-type');
+  const typeNote = dial.querySelector('#bk-type-note');
+  let slotChips = [];
+  let current = -1;
+  let settleTimer = 0;
+
+  // The slot buttons app.js drew (empty while loading or when a message is showing).
+  const readChips = () => [...slotsEl.querySelectorAll('.chip[data-start]')];
+
+  // Rebuilds the dial whenever app.js redraws the times.
+  function buildDial() {
+    slotChips = readChips();
+    const has = slotChips.length > 0;
+    dial.hidden = !has;
+    slotsEl.classList.toggle('bk-slots-hidden', has);
+    if (!has) { current = -1; return; }
+    wheel.innerHTML = slotChips.map((c, i) => `<div class="bk-wheel-item" role="option" data-i="${i}">${c.textContent}</div>`).join('');
+    const picked = slotChips.findIndex((c) => c.classList.contains('on'));
+    current = -1;
+    select(picked >= 0 ? picked : 0, false);
+  }
+
+  // Centers item i, then picks it through app.js's own button.
+  function select(i, smooth = true) {
+    i = Math.max(0, Math.min(slotChips.length - 1, i));
+    const item = wheel.children[i];
+    if (!item) return;
+    wheel.scrollTo({ top: item.offsetTop - (wheel.clientHeight - item.offsetHeight) / 2, behavior: smooth && !reduced ? 'smooth' : 'auto' });
+    if (i !== current) {
+      current = i;
+      if (!slotChips[i].classList.contains('on')) slotChips[i].click();
+      [...wheel.children].forEach((el, k) => el.setAttribute('aria-selected', k === i));
+      typeBox.value = slotChips[i].dataset.start;
+    }
+    tiltItems();
+  }
+
+  // Curves the list like a real dial: items further from the middle tilt away and fade.
+  function tiltItems() {
+    const mid = wheel.scrollTop + wheel.clientHeight / 2;
+    [...wheel.children].forEach((el) => {
+      const off = (el.offsetTop + el.offsetHeight / 2 - mid) / el.offsetHeight;
+      const d = Math.max(-3, Math.min(3, off));
+      el.style.transform = reduced ? '' : `rotateX(${-d * 22}deg) scale(${1 - Math.abs(d) * 0.08})`;
+      el.style.opacity = String(1 - Math.min(1, Math.abs(d) * 0.28));
+      el.classList.toggle('mid', Math.abs(off) < 0.5);
+    });
+  }
+
+  // After the scroll stops, pick whatever sits in the middle.
+  wheel.addEventListener('scroll', () => {
+    requestAnimationFrame(tiltItems);
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(() => {
+      const mid = wheel.scrollTop + wheel.clientHeight / 2;
+      let best = 0, bestDist = Infinity;
+      [...wheel.children].forEach((el, k) => {
+        const dist = Math.abs(el.offsetTop + el.offsetHeight / 2 - mid);
+        if (dist < bestDist) { bestDist = dist; best = k; }
+      });
+      select(best);
+    }, 110);
+  }, { passive: true });
+
+  wheel.addEventListener('click', (e) => {
+    const item = e.target.closest('.bk-wheel-item');
+    if (item) select(Number(item.dataset.i));
+  });
+  wheel.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); select(current + 1); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); select(current - 1); }
+  });
+  dial.querySelectorAll('.bk-wheel-btn').forEach((b) => b.addEventListener('click', () => select(current + Number(b.dataset.move))));
+
+  // Typed time: use it if it's open, otherwise jump to the closest open time and say so.
+  typeBox.addEventListener('change', () => {
+    if (!typeBox.value || !slotChips.length) return;
+    const [h, m] = typeBox.value.split(':').map(Number);
+    const want = h * 60 + m;
+    let best = 0, bestDist = Infinity;
+    slotChips.forEach((c, k) => {
+      const [ch, cm] = c.dataset.start.split(':').map(Number);
+      const dist = Math.abs(ch * 60 + cm - want);
+      if (dist < bestDist) { bestDist = dist; best = k; }
+    });
+    typeNote.textContent = bestDist ? `That time is taken. Closest open time: ${slotChips[best].textContent}.` : '';
+    select(best);
+  });
+
+  // The dial was measured while hidden; center it again once its step is on screen.
+  form.addEventListener('bk-time-shown', () => { if (current >= 0) requestAnimationFrame(() => { const i = current; current = -1; select(i, false); }); });
+  new MutationObserver(buildDial).observe(slotsEl, { childList: true });
+  buildDial();
 
   /* ---------- Remember who is booking ---------- */
   // Signed in: name, phone and email come from their profile, so nothing is asked twice.
