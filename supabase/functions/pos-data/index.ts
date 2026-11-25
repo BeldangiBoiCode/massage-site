@@ -8,6 +8,50 @@ import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 const db = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
 const M360_BASE = Deno.env.get('M360_BASE_URL') ?? 'https://www.merchant360.com/api/m360/v1';
 
+// Optional Upstash Redis cache so many admin tabs don't each hit the POS. If the two secrets
+// (UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN) are missing or Redis is down, we just skip the cache.
+const REDIS_URL = Deno.env.get('UPSTASH_REDIS_REST_URL');
+const REDIS_TOKEN = Deno.env.get('UPSTASH_REDIS_REST_TOKEN');
+
+// Runs one Redis command over Upstash's REST API. Returns null on any problem.
+async function redis(cmd: (string | number)[]): Promise<unknown> {
+  if (!REDIS_URL || !REDIS_TOKEN) return null;
+  try {
+    const r = await fetch(REDIS_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+      body: JSON.stringify(cmd),
+      signal: AbortSignal.timeout(2000), // never let the cache slow the page down
+    });
+    return r.ok ? (await r.json()).result ?? null : null;
+  } catch {
+    return null;
+  }
+}
+
+// How long each kind of POS answer may be reused. Sales stay short so the feed feels live;
+// customer data (personal info) is kept for a minute at most.
+const TTL_SECONDS: Record<string, number> = { transactions: 15, summary: 60, customers: 60, customer: 60, me: 300 };
+
+// Circuit breaker: after 5 POS failures within a minute we stop calling the POS for 30 seconds,
+// so a POS outage doesn't pile up slow requests. While it is open we serve the last good answer.
+const BREAKER_OPEN_KEY = 'pos:breaker:open';
+const BREAKER_FAILS_KEY = 'pos:breaker:fails';
+
+// Records one POS failure and opens the breaker when there have been too many.
+async function noteFailure() {
+  const n = Number(await redis(['INCR', BREAKER_FAILS_KEY]));
+  if (n === 1) await redis(['EXPIRE', BREAKER_FAILS_KEY, 60]);
+  if (n >= 5) await redis(['SET', BREAKER_OPEN_KEY, '1', 'EX', 30]);
+}
+
+// Reads a cached JSON answer, or null.
+async function readCache(key: string): Promise<unknown | null> {
+  const raw = await redis(['GET', key]);
+  if (typeof raw !== 'string') return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
@@ -82,6 +126,18 @@ Deno.serve(async (req) => {
   const path = buildPath(body);
   if (!path) return reply({ error: 'Bad request.' }, 400);
 
+  // Same path = same answer for every admin, so the cache key is just the POS path.
+  const cacheKey = `pos:v1:${path}`;
+  const staleKey = `pos:stale:v1:${path}`;
+  const cached = await readCache(cacheKey);
+  if (cached) return reply(cached);
+
+  // Breaker open: don't touch the POS. Show the last good answer if we have one.
+  if (await redis(['GET', BREAKER_OPEN_KEY])) {
+    const stale = await readCache(staleKey);
+    return stale ? reply({ ...(stale as object), stale: true }) : reply({ error: 'The POS is having trouble. Try again in a minute.', code: 'breaker_open' }, 503);
+  }
+
   let res: Response;
   try {
     res = await fetch(M360_BASE + path, {
@@ -89,11 +145,14 @@ Deno.serve(async (req) => {
       signal: AbortSignal.timeout(15000),
     });
   } catch {
-    return reply({ error: 'The POS did not answer. Try again.' }, 502);
+    await noteFailure();
+    const stale = await readCache(staleKey);
+    return stale ? reply({ ...(stale as object), stale: true }) : reply({ error: 'The POS did not answer. Try again.' }, 502);
   }
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     // Log the real reason on the server only; the browser gets a plain message.
+    if (res.status >= 500 || res.status === 429) await noteFailure(); // 4xx (bad key etc.) is not an outage
     console.error('merchant360', res.status, path.split('?')[0], JSON.stringify(data?.error ?? data));
     const msg = res.status === 401 ? 'The POS key was refused.'
       : res.status === 403 ? 'The POS key is missing a permission (needs customers:read and reports:read).'
@@ -101,5 +160,9 @@ Deno.serve(async (req) => {
       : 'The POS had a problem.';
     return reply({ error: msg, code: data?.error?.code ?? 'pos_error' }, res.status === 429 ? 429 : 502);
   }
+  // Only successful answers are cached.
+  await redis(['SET', cacheKey, JSON.stringify(data), 'EX', TTL_SECONDS[String(body.action)] ?? 15]);
+  await redis(['SET', staleKey, JSON.stringify(data), 'EX', 3600]); // fallback copy for outages
+  await redis(['DEL', BREAKER_FAILS_KEY]);
   return reply(data);
 });
