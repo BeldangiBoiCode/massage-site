@@ -188,7 +188,9 @@
     i = Math.max(0, Math.min(slotChips.length - 1, i));
     const item = wheel.children[i];
     if (!item) return;
-    wheel.scrollTo({ top: item.offsetTop - (wheel.clientHeight - item.offsetHeight) / 2, behavior: smooth && !reduced ? 'smooth' : 'auto' });
+    const target = item.offsetTop - (wheel.clientHeight - item.offsetHeight) / 2;
+    // Already centered (a thumb flick that scroll-snap settled): don't fight it with another scroll.
+    if (Math.abs(wheel.scrollTop - target) > 2) wheel.scrollTo({ top: target, behavior: smooth && !reduced ? 'smooth' : 'auto' });
     if (i !== current) {
       current = i;
       if (!slotChips[i].classList.contains('on')) slotChips[i].click();
@@ -210,20 +212,30 @@
     });
   }
 
-  // After the scroll stops, pick whatever sits in the middle.
+  // Picks whatever sits in the middle of the dial.
+  function settle() {
+    if (touching) return; // finger still on the dial: wait for it to let go
+    const mid = wheel.scrollTop + wheel.clientHeight / 2;
+    let best = 0, bestDist = Infinity;
+    [...wheel.children].forEach((el, k) => {
+      const dist = Math.abs(el.offsetTop + el.offsetHeight / 2 - mid);
+      if (dist < bestDist) { bestDist = dist; best = k; }
+    });
+    select(best);
+  }
+
+  // Tilt once per frame while scrolling; pick when the scroll (or the thumb's flick) comes to rest.
+  let tiltQueued = false, touching = false;
+  const hasScrollEnd = 'onscrollend' in window;
   wheel.addEventListener('scroll', () => {
-    requestAnimationFrame(tiltItems);
+    if (!tiltQueued) { tiltQueued = true; requestAnimationFrame(() => { tiltQueued = false; tiltItems(); }); }
+    if (hasScrollEnd) return;
     clearTimeout(settleTimer);
-    settleTimer = setTimeout(() => {
-      const mid = wheel.scrollTop + wheel.clientHeight / 2;
-      let best = 0, bestDist = Infinity;
-      [...wheel.children].forEach((el, k) => {
-        const dist = Math.abs(el.offsetTop + el.offsetHeight / 2 - mid);
-        if (dist < bestDist) { bestDist = dist; best = k; }
-      });
-      select(best);
-    }, 110);
+    settleTimer = setTimeout(settle, 180); // older Safari has no scrollend
   }, { passive: true });
+  if (hasScrollEnd) wheel.addEventListener('scrollend', settle);
+  wheel.addEventListener('touchstart', () => { touching = true; clearTimeout(settleTimer); }, { passive: true });
+  wheel.addEventListener('touchend', () => { touching = false; clearTimeout(settleTimer); settleTimer = setTimeout(settle, 220); }, { passive: true });
 
   wheel.addEventListener('click', (e) => {
     const item = e.target.closest('.bk-wheel-item');
