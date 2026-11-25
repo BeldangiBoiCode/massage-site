@@ -106,6 +106,68 @@
   // "Book another" resets the form: go back to the first question and clear the body.
   form.addEventListener('reset', () => setTimeout(() => { paintBody(); go(0, false); }, 0));
 
+  /* ---------- Remember who is booking ---------- */
+  // Signed in: name, phone and email come from their profile, so nothing is asked twice.
+  // Guest: kept only in this browser (localStorage) when "Remember me" is ticked. Sign out clears it.
+  const KEY = 'nn_booking_contact';
+  const who = document.getElementById('bk-who');
+  const whoText = document.getElementById('bk-who-text');
+  const rememberRow = document.getElementById('bk-remember-row');
+  const remember = document.getElementById('bk-remember');
+  let signedIn = false;
+
+  // Fills only the boxes that are still empty, so we never overwrite what someone is typing.
+  function fill(c) {
+    if (!c) return;
+    if (c.name && !form.name.value) form.name.value = c.name;
+    if (c.phone && !form.phone.value) form.phone.value = c.phone;
+    if (c.email && !form.email.value) form.email.value = c.email;
+    if (form.name.value && form.phone.value) {
+      whoText.textContent = `Booking as ${form.name.value}.`;
+      who.hidden = false;
+    }
+  }
+
+  async function prefill() {
+    try {
+      const { data } = await sb.auth.getSession();
+      const user = data.session?.user;
+      signedIn = !!user;
+      rememberRow.hidden = signedIn; // signed-in people don't need the checkbox
+      if (user) {
+        const { data: p } = await sb.from('profiles').select('full_name,email,phone').eq('id', user.id).maybeSingle();
+        fill({ name: p?.full_name || user.user_metadata?.full_name, phone: p?.phone, email: p?.email || user.email });
+      } else {
+        fill(JSON.parse(localStorage.getItem(KEY) || 'null'));
+      }
+    } catch { /* no prefill is fine, the form still works */ }
+    // Everything we need is already filled: start on the massage question.
+    if (at === 0 && form.name.value && form.phone.value) go(1, false);
+  }
+
+  // Wipes the remembered details and empties the three boxes.
+  document.getElementById('bk-clear').addEventListener('click', () => {
+    localStorage.removeItem(KEY);
+    ['name', 'phone', 'email'].forEach((f) => { form[f].value = ''; });
+    who.hidden = true;
+    form.name.focus();
+  });
+
+  // Save a guest's details when they send the booking (only if they left "Remember me" ticked).
+  form.addEventListener('submit', () => {
+    if (signedIn) return;
+    if (remember.checked && form.name.value.trim() && form.phone.value.trim()) {
+      localStorage.setItem(KEY, JSON.stringify({ name: form.name.value.trim(), phone: form.phone.value.trim(), email: form.email.value.trim() }));
+    } else {
+      localStorage.removeItem(KEY);
+    }
+  });
+
+  // Signing out clears the remembered details on this device.
+  sb.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') localStorage.removeItem(KEY); });
+
   paintBody();
   go(0, false);
+  prefill();
+  form.addEventListener('reset', () => setTimeout(prefill, 50)); // "Book another" refills the details
 })();
