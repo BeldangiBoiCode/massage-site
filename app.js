@@ -307,6 +307,15 @@ form.addEventListener('submit', async (e) => {
     date: form.date.value, time: form.time.value, addons,
   };
 
+  // Intake answers ride along in notes (the edge function stores notes as-is, max 1000 chars).
+  const focus = [...form.querySelectorAll('input[name=focus_area]:checked')].map((c) => c.value);
+  const notes = [
+    focus.length ? `Focus: ${focus.join(', ')}` : '',
+    form.conditions.value.trim() ? `Conditions: ${form.conditions.value.trim()}` : '',
+    form.allergies.value.trim() ? `Allergies: ${form.allergies.value.trim()}` : '',
+    form.notes.value.trim(),
+  ].filter(Boolean).join('\n');
+
   // Goes through the submit-booking edge function: input check, spam/rate limit, then auto-confirm.
   let res, out = {};
   try {
@@ -318,7 +327,7 @@ form.addEventListener('submit', async (e) => {
         apikey: SUPABASE_ANON_KEY,
         Authorization: `Bearer ${s.session?.access_token ?? SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify({ ...booking, notes: form.notes.value, website: form.website.value }),
+      body: JSON.stringify({ ...booking, notes, website: form.website.value }),
     });
     out = await res.json().catch(() => ({}));
   } catch { /* network down: handled below */ }

@@ -6,6 +6,11 @@
 > or use Supabase tools, and do not build anything that needs new data. If a design needs backend work, tell the user "this needs Austin"
 > and stop. Everything below is background so you understand what exists; it is NOT a to-do list for you. See `CLAUDE.md` for the full rules.
 >
+> ## 2026-11-24: booking intake questions (FYI Austin)
+> The owner asked for this. The booking form now asks for focus areas (`focus_area` checkboxes), `conditions` and `allergies`. `app.js` folds
+> them into `notes` as "Focus: … / Conditions: … / Allergies: …" before calling `submit-booking`. Nothing changed on the backend; the answers
+> land in `bookings.notes` (max 1000 chars). If you want separate columns later, add a migration plus `submit-booking` fields.
+>
 > ## READ FIRST: 2026-10-14 update (big)
 > A lot was added on 2026-10-14. **Update, same day: the four new migrations are now APPLIED to the live Supabase project and all five
 > changed/new edge functions are DEPLOYED** (`submit-review`, `calendar-feed`, `calendar-connect`, `google-callback`, `calendar-push`,
