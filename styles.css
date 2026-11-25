@@ -468,3 +468,41 @@ body::after { right: 0; transform: scaleX(-1); }
 .rcal-key { margin: 4px 2px 0; font-size: .82rem; color: var(--stone); display: flex; align-items: center; gap: 6px; }
 .rcal-key i { width: 14px; height: 14px; border-radius: 4px; background: repeating-linear-gradient(135deg, #F3E7C4 0 4px, var(--linen) 4px 8px); }
 .chip.taken, .chip:disabled { opacity: .35; text-decoration: line-through; cursor: not-allowed; }
+
+/* ---------- Booking: one question at a time + tap-the-body picker ---------- */
+#booking .bk-progress { height: 6px; border-radius: 6px; background: var(--sea-glass); overflow: hidden; }
+#booking .bk-bar { display: block; height: 100%; width: 20%; border-radius: 6px; background: linear-gradient(90deg, var(--eucalyptus), var(--pine)); transition: width .45s cubic-bezier(.3, .8, .3, 1); }
+#booking .bk-count { font-size: .85rem; color: var(--stone); letter-spacing: .04em; margin: 8px 0 14px; }
+.bk-step { display: grid; gap: 16px; }
+.bk-step[hidden] { display: none; }
+.bk-step.from-fwd { animation: bk-in-fwd .38s cubic-bezier(.3, .8, .3, 1) both; }
+.bk-step.from-back { animation: bk-in-back .38s cubic-bezier(.3, .8, .3, 1) both; }
+@keyframes bk-in-fwd { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+@keyframes bk-in-back { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+.bk-q { font-size: clamp(1.7rem, 4vw, 2.3rem); outline: none; }
+.bk-nav { display: flex; gap: 10px; margin-top: 22px; }
+.bk-nav .btn { flex: 1; }
+.bk-nav .btn[hidden] { display: none; }
+.bk-summary { color: var(--stone); font-size: .95rem; }
+
+.bk-view { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--linen); width: max-content; }
+.bk-view button { border: 0; background: transparent; color: var(--pine); font: 600 .9rem "Figtree", sans-serif; min-height: 40px; padding: 0 20px; border-radius: 999px; cursor: pointer; transition: background .25s ease, color .25s ease; }
+.bk-view button.on { background: var(--pine); color: var(--linen); }
+.bk-body { position: relative; background: var(--mist); border-radius: 20px; padding: 14px; display: grid; justify-items: center; }
+.bk-figure { width: min(100%, 260px); height: auto; max-height: 52vh; }
+.bk-body[data-show="front"] .bk-figure[data-view="back"], .bk-body[data-show="back"] .bk-figure[data-view="front"] { display: none; }
+.bk-body[data-show] .bk-figure { animation: bk-in-fwd .35s ease both; }
+.bk-figure .deco { fill: var(--sea-glass); }
+.bk-figure .zone { cursor: pointer; outline: none; }
+.bk-figure .zone > * { fill: #BFD3C8; stroke: #fff; stroke-width: 2; transition: fill .25s ease, transform .25s ease; transform-box: fill-box; transform-origin: center; }
+.bk-figure .zone:hover > *, .bk-figure .zone:focus-visible > * { fill: #A4C4B5; }
+.bk-figure .zone:focus-visible > * { stroke: var(--pine); }
+.bk-figure[data-view="front"] .zone.on > * { fill: url(#bk-sel-front); }
+.bk-figure[data-view="back"] .zone.on > * { fill: url(#bk-sel-back); }
+.bk-figure .zone.on > * { stroke: var(--pine); stroke-width: 2.5; }
+.bk-picked { color: var(--pine); font-weight: 500; min-height: 1.6em; }
+.bk-hidden-checks { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  .bk-step.from-fwd, .bk-step.from-back, .bk-body[data-show] .bk-figure { animation: none; }
+  #booking .bk-bar, .bk-figure .zone > * { transition: none; }
+}

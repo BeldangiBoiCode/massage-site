@@ -162,57 +162,102 @@
         <a class="btn ghost" href="https://www.google.com/maps/search/?api=1&query=23+Logwood+St+South+Burlington+VT+05403" target="_blank" rel="noopener">Open in Google Maps</a>
       </div>
       <form id="booking" novalidate>
-        <label>Your name<input name="name" autocomplete="name" required></label>
-        <div class="row">
-          <label>Phone<input name="phone" type="tel" autocomplete="tel" required></label>
-          <label>Email <span class="opt">(optional, for reminders)</span><input name="email" type="email" autocomplete="email"></label>
+        <div class="bk-progress" aria-hidden="true"><span class="bk-bar" id="bk-bar"></span></div>
+        <p class="bk-count" id="bk-count" aria-live="polite"></p>
+
+        <div class="bk-step" data-title="Who is coming in?">
+          <h3 class="bk-q" tabindex="-1">Who is coming in?</h3>
+          <label>Your name<input name="name" autocomplete="name" required></label>
+          <div class="row">
+            <label>Phone<input name="phone" type="tel" autocomplete="tel" required></label>
+            <label>Email <span class="opt">(optional, for reminders)</span><input name="email" type="email" autocomplete="email"></label>
+          </div>
         </div>
-        <div class="row">
-          <label>Massage
-            <select name="service">
-              <option>Deep tissue</option>
-              <option>Swedish relaxation</option>
-              <option>Sports and recovery</option>
-            </select>
-          </label>
-          <label>Length
-            <select name="duration">
-              <option value="60">60 min, $85</option>
-              <option value="90">90 min, $120</option>
-            </select>
-          </label>
+
+        <div class="bk-step" data-title="What kind of massage?" hidden>
+          <h3 class="bk-q" tabindex="-1">What kind of massage?</h3>
+          <div class="row">
+            <label>Massage
+              <select name="service">
+                <option>Deep tissue</option>
+                <option>Swedish relaxation</option>
+                <option>Sports and recovery</option>
+              </select>
+            </label>
+            <label>Length
+              <select name="duration">
+                <option value="60">60 min, $85</option>
+                <option value="90">90 min, $120</option>
+              </select>
+            </label>
+          </div>
+          <fieldset class="addon-picks">
+            <legend>Add-ons <span class="opt">(optional)</span></legend>
+            <label class="check"><input type="checkbox" name="addon" value="Cupping"> Cupping, +$15</label>
+            <label class="check"><input type="checkbox" name="addon" value="TENS machine"> TENS machine, +$20</label>
+          </fieldset>
         </div>
-        <div class="field">
-          <span class="field-label" id="day-label">Day <span class="opt">(open Sunday and Monday)</span></span>
-          <input type="hidden" name="date" required>
-          <div class="cal" id="cal" role="group" aria-labelledby="day-label"></div>
+
+        <div class="bk-step" data-title="Where do you want the most attention?" hidden>
+          <h3 class="bk-q" tabindex="-1">Where do you want the most attention?</h3>
+          <p class="hint">Tap the spots on the body. Tap again to unpick. Skip it if you are not sure.</p>
+          <div class="bk-view" role="tablist" aria-label="Body view">
+            <button type="button" role="tab" class="on" data-view="front" aria-selected="true">Front</button>
+            <button type="button" role="tab" data-view="back" aria-selected="false">Back</button>
+          </div>
+          <div class="bk-body" id="bk-body">
+            <svg class="bk-figure" data-view="front" viewBox="0 0 200 400" role="group" aria-label="Body, front view">
+            <defs><linearGradient id="bk-sel-front" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7DB09B"/><stop offset="1" stop-color="#3F6F5E"/></linearGradient></defs>
+            <circle class="deco" cx="100" cy="34" r="22"/><rect class="deco" x="72" y="80" width="56" height="106" rx="18"/>
+            <g class="zone" data-area="Neck" role="button" tabindex="0" aria-pressed="false" aria-label="Neck"><rect x="89" y="54" width="22" height="20" rx="8"/></g><g class="zone" data-area="Shoulders" role="button" tabindex="0" aria-pressed="false" aria-label="Shoulders"><ellipse cx="64" cy="86" rx="25" ry="13" transform="rotate(-12 64 86)"/><ellipse cx="136" cy="86" rx="25" ry="13" transform="rotate(12 136 86)"/></g><g class="zone" data-area="Arms and hands" role="button" tabindex="0" aria-pressed="false" aria-label="Arms and hands"><rect x="32" y="102" width="21" height="128" rx="10.5" transform="rotate(4 42 166)"/><rect x="147" y="102" width="21" height="128" rx="10.5" transform="rotate(-4 158 166)"/></g><g class="zone" data-area="Hips and glutes" role="button" tabindex="0" aria-pressed="false" aria-label="Hips and glutes"><ellipse cx="100" cy="206" rx="35" ry="25"/></g><g class="zone" data-area="Legs" role="button" tabindex="0" aria-pressed="false" aria-label="Legs"><rect x="71" y="228" width="27" height="136" rx="13"/><rect x="102" y="228" width="27" height="136" rx="13"/></g><g class="zone" data-area="Feet" role="button" tabindex="0" aria-pressed="false" aria-label="Feet"><ellipse cx="84" cy="385" rx="17" ry="9"/><ellipse cx="116" cy="385" rx="17" ry="9"/></g>
+          </svg>
+            <svg class="bk-figure" data-view="back" viewBox="0 0 200 400" role="group" aria-label="Body, back view">
+            <defs><linearGradient id="bk-sel-back" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7DB09B"/><stop offset="1" stop-color="#3F6F5E"/></linearGradient></defs>
+            <circle class="deco" cx="100" cy="34" r="22"/>
+            <g class="zone" data-area="Neck" role="button" tabindex="0" aria-pressed="false" aria-label="Neck"><rect x="89" y="54" width="22" height="20" rx="8"/></g><g class="zone" data-area="Shoulders" role="button" tabindex="0" aria-pressed="false" aria-label="Shoulders"><ellipse cx="64" cy="86" rx="25" ry="13" transform="rotate(-12 64 86)"/><ellipse cx="136" cy="86" rx="25" ry="13" transform="rotate(12 136 86)"/></g><g class="zone" data-area="Arms and hands" role="button" tabindex="0" aria-pressed="false" aria-label="Arms and hands"><rect x="32" y="102" width="21" height="128" rx="10.5" transform="rotate(4 42 166)"/><rect x="147" y="102" width="21" height="128" rx="10.5" transform="rotate(-4 158 166)"/></g><g class="zone" data-area="Upper back" role="button" tabindex="0" aria-pressed="false" aria-label="Upper back"><rect x="72" y="80" width="56" height="58" rx="16"/></g><g class="zone" data-area="Lower back" role="button" tabindex="0" aria-pressed="false" aria-label="Lower back"><rect x="74" y="140" width="52" height="46" rx="14"/></g><g class="zone" data-area="Hips and glutes" role="button" tabindex="0" aria-pressed="false" aria-label="Hips and glutes"><ellipse cx="100" cy="206" rx="35" ry="25"/></g><g class="zone" data-area="Legs" role="button" tabindex="0" aria-pressed="false" aria-label="Legs"><rect x="71" y="228" width="27" height="136" rx="13"/><rect x="102" y="228" width="27" height="136" rx="13"/></g><g class="zone" data-area="Feet" role="button" tabindex="0" aria-pressed="false" aria-label="Feet"><ellipse cx="84" cy="385" rx="17" ry="9"/><ellipse cx="116" cy="385" rx="17" ry="9"/></g>
+          </svg>
+          </div>
+          <p class="bk-picked" id="bk-picked" aria-live="polite">Nothing picked yet</p>
+          <div class="bk-hidden-checks">
+            <label class="check"><input type="checkbox" name="focus_area" value="Neck"> Neck</label>
+            <label class="check"><input type="checkbox" name="focus_area" value="Shoulders"> Shoulders</label>
+            <label class="check"><input type="checkbox" name="focus_area" value="Upper back"> Upper back</label>
+            <label class="check"><input type="checkbox" name="focus_area" value="Lower back"> Lower back</label>
+            <label class="check"><input type="checkbox" name="focus_area" value="Arms and hands"> Arms and hands</label>
+            <label class="check"><input type="checkbox" name="focus_area" value="Hips and glutes"> Hips and glutes</label>
+            <label class="check"><input type="checkbox" name="focus_area" value="Legs"> Legs</label>
+            <label class="check"><input type="checkbox" name="focus_area" value="Feet"> Feet</label>
+          </div>
         </div>
-        <div class="field">
-          <span class="field-label" id="time-label">Time</span>
-          <input type="hidden" name="time" required>
-          <div class="slots" id="slots" role="radiogroup" aria-labelledby="time-label"></div>
-          <p class="hint" id="slot-hint">Sessions run 9am to 8pm, with a short break between clients.</p>
+
+        <div class="bk-step" data-title="Anything we should know?" hidden>
+          <h3 class="bk-q" tabindex="-1">Anything we should know?</h3>
+          <label>Health conditions or injuries <span class="opt">(pregnancy, surgery, high blood pressure, etc.)</span><textarea name="conditions" rows="2" maxlength="300"></textarea></label>
+          <label>Allergies <span class="opt">(oils, lotions, nuts, latex, etc.)</span><input name="allergies" maxlength="200"></label>
+          <label>Anything else? <span class="opt">(optional)</span><textarea name="notes" rows="3" maxlength="400"></textarea></label>
         </div>
-        <fieldset class="addon-picks">
-          <legend>Add-ons <span class="opt">(optional)</span></legend>
-          <label class="check"><input type="checkbox" name="addon" value="Cupping"> Cupping, +$15</label>
-          <label class="check"><input type="checkbox" name="addon" value="TENS machine"> TENS machine, +$20</label>
-        </fieldset>
-        <fieldset class="addon-picks">
-          <legend>Focus areas <span class="opt">(pick any)</span></legend>
-          <label class="check"><input type="checkbox" name="focus_area" value="Neck"> Neck</label>
-          <label class="check"><input type="checkbox" name="focus_area" value="Shoulders"> Shoulders</label>
-          <label class="check"><input type="checkbox" name="focus_area" value="Upper back"> Upper back</label>
-          <label class="check"><input type="checkbox" name="focus_area" value="Lower back"> Lower back</label>
-          <label class="check"><input type="checkbox" name="focus_area" value="Arms and hands"> Arms and hands</label>
-          <label class="check"><input type="checkbox" name="focus_area" value="Hips and glutes"> Hips and glutes</label>
-          <label class="check"><input type="checkbox" name="focus_area" value="Legs"> Legs</label>
-          <label class="check"><input type="checkbox" name="focus_area" value="Feet"> Feet</label>
-        </fieldset>
-        <label>Health conditions or injuries <span class="opt">(pregnancy, surgery, high blood pressure, etc.)</span><textarea name="conditions" rows="2" maxlength="300"></textarea></label>
-        <label>Allergies <span class="opt">(oils, lotions, nuts, latex, etc.)</span><input name="allergies" maxlength="200"></label>
-        <label>Anything I should know? <span class="opt">(optional)</span><textarea name="notes" rows="3" maxlength="400"></textarea></label>
-        <button class="btn" type="submit"><span class="btn-label">Book this time</span></button>
+
+        <div class="bk-step" data-title="When works for you?" hidden>
+          <h3 class="bk-q" tabindex="-1">When works for you?</h3>
+          <div class="field">
+            <span class="field-label" id="day-label">Day <span class="opt">(open Sunday and Monday)</span></span>
+            <input type="hidden" name="date" required>
+            <div class="cal" id="cal" role="group" aria-labelledby="day-label"></div>
+          </div>
+          <div class="field">
+            <span class="field-label" id="time-label">Time</span>
+            <input type="hidden" name="time" required>
+            <div class="slots" id="slots" role="radiogroup" aria-labelledby="time-label"></div>
+            <p class="hint" id="slot-hint">Sessions run 9am to 8pm, with a short break between clients.</p>
+          </div>
+          <p class="bk-summary" id="bk-summary"></p>
+        </div>
+
+        <div class="bk-nav">
+          <button class="btn ghost" type="button" id="bk-back" hidden>Back</button>
+          <button class="btn" type="button" id="bk-next">Next</button>
+          <button class="btn" type="submit" id="bk-submit" hidden><span class="btn-label">Book this time</span></button>
+        </div>
         <p class="status" id="status" role="status" aria-live="polite"></p>
       </form>
     </div>
@@ -237,6 +282,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="supabase-client.js"></script>
 <script src="app.js"></script>
+<script src="booking-steps.js"></script>
 <script src="reviews-strip.js"></script>
 <script src="away.js"></script>
 <script src="header.js" defer></script>
