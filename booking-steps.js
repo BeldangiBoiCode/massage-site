@@ -106,6 +106,42 @@
   // "Book another" resets the form: go back to the first question and clear the body.
   form.addEventListener('reset', () => setTimeout(() => { paintBody(); go(0, false); }, 0));
 
+  /* ---------- Health + allergy icon picks ---------- */
+  // Tapped icons (plus the "Other" text) are joined into the hidden `conditions` / `allergies` inputs,
+  // which is what app.js already sends. "None" clears the rest; "Other" opens a small text box.
+  const chips = [...form.querySelectorAll('.bk-chip')];
+  const LIMITS = { conditions: 300, allergies: 200 };
+
+  // Rebuilds one group's hidden value from its tapped icons and its "Other" box.
+  function syncGroup(group) {
+    const on = chips.filter((c) => c.dataset.group === group && c.classList.contains('on')).map((c) => c.dataset.value);
+    const otherBox = form.querySelector(`.bk-other[data-for="${group}"]`);
+    const otherText = form[`${group}_other`].value.trim();
+    otherBox.hidden = !on.includes('Other');
+    const parts = on.filter((v) => v !== 'Other');
+    if (on.includes('Other') && otherText) parts.push(otherText);
+    form[group].value = parts.join(', ').slice(0, LIMITS[group]);
+  }
+
+  function paintChips() {
+    chips.forEach((c) => c.setAttribute('aria-pressed', c.classList.contains('on')));
+    syncGroup('conditions');
+    syncGroup('allergies');
+  }
+
+  chips.forEach((c) => c.addEventListener('click', () => {
+    const group = chips.filter((x) => x.dataset.group === c.dataset.group);
+    const turningOn = !c.classList.contains('on');
+    // "None" and the real answers can't both be picked.
+    if (turningOn && c.dataset.value === 'None') group.forEach((x) => x.classList.remove('on'));
+    if (turningOn && c.dataset.value !== 'None') group.find((x) => x.dataset.value === 'None')?.classList.remove('on');
+    c.classList.toggle('on', turningOn);
+    paintChips();
+    if (turningOn && c.dataset.value === 'Other') form[`${c.dataset.group}_other`].focus();
+  }));
+  ['conditions', 'allergies'].forEach((g) => form[`${g}_other`].addEventListener('input', () => syncGroup(g)));
+  form.addEventListener('reset', () => setTimeout(() => { chips.forEach((c) => c.classList.remove('on')); paintChips(); }, 0));
+
   /* ---------- Remember who is booking ---------- */
   // Signed in: name, phone and email come from their profile, so nothing is asked twice.
   // Guest: kept only in this browser (localStorage) when "Remember me" is ticked. Sign out clears it.
@@ -167,6 +203,7 @@
   sb.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') localStorage.removeItem(KEY); });
 
   paintBody();
+  paintChips();
   go(0, false);
   prefill();
   form.addEventListener('reset', () => setTimeout(prefill, 50)); // "Book another" refills the details

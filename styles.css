@@ -489,23 +489,49 @@ body::after { right: 0; transform: scaleX(-1); }
 .bk-view button { border: 0; background: transparent; color: var(--pine); font: 600 .9rem "Figtree", sans-serif; min-height: 40px; padding: 0 20px; border-radius: 999px; cursor: pointer; transition: background .25s ease, color .25s ease; }
 .bk-view button.on { background: var(--pine); color: var(--linen); }
 .bk-body { position: relative; background: var(--mist); border-radius: 20px; padding: 14px; display: grid; justify-items: center; }
-.bk-figure { width: min(100%, 260px); height: auto; max-height: 52vh; }
+.bk-figure { width: min(100%, 300px); height: auto; max-height: 60vh; }
 .bk-body[data-show="front"] .bk-figure[data-view="back"], .bk-body[data-show="back"] .bk-figure[data-view="front"] { display: none; }
 .bk-body[data-show] .bk-figure { animation: bk-in-fwd .35s ease both; }
-.bk-figure .deco { fill: var(--sea-glass); }
+.bk-figure { filter: drop-shadow(0 14px 22px rgb(30 59 53 / .16)); overflow: visible; }
+.bk-figure .bk-head, .bk-figure .bk-shape { fill: #C7DACF; }
+.bk-figure .deco { fill: #D6E5DD; pointer-events: none; }
+.bk-figure .spine { stroke: rgb(30 59 53 / .22); stroke-width: 1.4; stroke-linecap: round; stroke-dasharray: 2 5; pointer-events: none; }
 .bk-figure .zone { cursor: pointer; outline: none; }
-.bk-figure .zone > * { fill: #BFD3C8; stroke: #fff; stroke-width: 2; transition: fill .25s ease, transform .25s ease; transform-box: fill-box; transform-origin: center; }
-.bk-figure .zone:hover > *, .bk-figure .zone:focus-visible > * { fill: #A4C4B5; }
-.bk-figure .zone:focus-visible > * { stroke: var(--pine); }
-.bk-figure[data-view="front"] .zone.on > * { fill: url(#bk-sel-front); }
-.bk-figure[data-view="back"] .zone.on > * { fill: url(#bk-sel-back); }
-.bk-figure .zone.on > * { stroke: var(--pine); stroke-width: 2.5; }
+.bk-figure .zone path { fill: #E4EEE8; stroke: rgb(30 59 53 / .18); stroke-width: .8; transition: fill .3s ease, filter .3s ease; }
+.bk-figure .zone:hover path, .bk-figure .zone:focus-visible path { fill: #B9D3C6; }
+.bk-figure .zone:focus-visible path { stroke: var(--pine); stroke-width: 1.4; }
+.bk-figure[data-view="front"] .zone.on path { fill: url(#bk-sel-front); }
+.bk-figure[data-view="back"] .zone.on path { fill: url(#bk-sel-back); }
+.bk-figure .zone.on path { stroke: rgb(30 59 53 / .5); filter: drop-shadow(0 0 3px rgb(91 138 120 / .55)); }
 .bk-picked { color: var(--pine); font-weight: 500; min-height: 1.6em; }
 .bk-hidden-checks { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
   .bk-step.from-fwd, .bk-step.from-back, .bk-body[data-show] .bk-figure { animation: none; }
-  #booking .bk-bar, .bk-figure .zone > * { transition: none; }
+  #booking .bk-bar, .bk-figure .zone path { transition: none; }
 }
 .bk-who { font-size: .95rem; color: var(--stone); }
 .bk-link { border: 0; background: none; padding: 0; font: inherit; color: var(--pine); text-decoration: underline; cursor: pointer; }
 #bk-remember-row[hidden], .bk-who[hidden] { display: none; }
+
+/* Health + allergy icon picks */
+.bk-chips-set { border: 0; margin: 0; padding: 0; display: grid; gap: 10px; }
+.bk-chips-set legend { font-weight: 600; font-size: .95rem; padding: 0; margin-bottom: 10px; }
+.bk-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(102px, 1fr)); gap: 8px; }
+.bk-chip { display: grid; justify-items: center; align-content: center; gap: 6px; min-height: 86px; padding: 12px 8px; border: 1px solid rgb(30 59 53 / .1); border-radius: 16px; background: var(--linen); color: var(--pine); font: 500 .85rem/1.2 "Figtree", sans-serif; text-align: center; cursor: pointer; box-shadow: 0 6px 16px -12px rgb(30 59 53 / .4); transition: background .25s ease, color .25s ease, transform .2s ease, box-shadow .25s ease; }
+.bk-chip svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .25s cubic-bezier(.3, 1.6, .5, 1); }
+.bk-chip:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -12px rgb(30 59 53 / .45); }
+.bk-chip.on { background: linear-gradient(160deg, var(--eucalyptus), var(--pine)); color: var(--linen); border-color: transparent; }
+.bk-chip.on svg { transform: scale(1.12); }
+.bk-chip[data-value="None"].on { background: var(--sea-glass); color: var(--pine); }
+.bk-other { animation: bk-in-fwd .3s ease both; }
+.bk-other[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { .bk-chip, .bk-chip svg { transition: none; } .bk-other { animation: none; } }
+@media (max-width: 480px) {
+  .bk-q { font-size: 1.6rem; }
+  .bk-chips { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .bk-chip { min-height: 78px; padding: 10px 4px; font-size: .78rem; }
+  .bk-chip svg { width: 24px; height: 24px; }
+  .bk-body { padding: 10px 6px; }
+  .bk-figure { width: min(100%, 280px); max-height: 56vh; }
+  .bk-nav { position: sticky; bottom: 10px; z-index: 3; }
+}
