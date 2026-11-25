@@ -110,14 +110,14 @@
   // Tapped icons (plus the "Other" text) are joined into the hidden `conditions` / `allergies` inputs,
   // which is what app.js already sends. "None" clears the rest; "Other" opens a small text box.
   const chips = [...form.querySelectorAll('.bk-chip')];
-  const LIMITS = { conditions: 300, allergies: 200 };
+  const LIMITS = { conditions: 300, allergies: 200, scent: 120 };
 
   // Rebuilds one group's hidden value from its tapped icons and its "Other" box.
   function syncGroup(group) {
     const on = chips.filter((c) => c.dataset.group === group && c.classList.contains('on')).map((c) => c.dataset.value);
-    const otherBox = form.querySelector(`.bk-other[data-for="${group}"]`);
-    const otherText = form[`${group}_other`].value.trim();
-    otherBox.hidden = !on.includes('Other');
+    const otherBox = form.querySelector(`.bk-other[data-for="${group}"]`); // scent has no "Other" box
+    const otherText = form[`${group}_other`]?.value.trim() ?? '';
+    if (otherBox) otherBox.hidden = !on.includes('Other');
     const parts = on.filter((v) => v !== 'Other');
     if (on.includes('Other') && otherText) parts.push(otherText);
     form[group].value = parts.join(', ').slice(0, LIMITS[group]);
@@ -127,14 +127,16 @@
     chips.forEach((c) => c.setAttribute('aria-pressed', c.classList.contains('on')));
     syncGroup('conditions');
     syncGroup('allergies');
+    syncGroup('scent');
   }
 
   chips.forEach((c) => c.addEventListener('click', () => {
     const group = chips.filter((x) => x.dataset.group === c.dataset.group);
     const turningOn = !c.classList.contains('on');
-    // "None" and the real answers can't both be picked.
-    if (turningOn && c.dataset.value === 'None') group.forEach((x) => x.classList.remove('on'));
-    if (turningOn && c.dataset.value !== 'None') group.find((x) => x.dataset.value === 'None')?.classList.remove('on');
+    // "None" / "Unscented" and the real answers can't both be picked.
+    const only = (x) => x.dataset.value === 'None' || x.hasAttribute('data-exclusive');
+    if (turningOn && only(c)) group.forEach((x) => x.classList.remove('on'));
+    if (turningOn && !only(c)) group.filter(only).forEach((x) => x.classList.remove('on'));
     c.classList.toggle('on', turningOn);
     paintChips();
     if (turningOn && c.dataset.value === 'Other') form[`${c.dataset.group}_other`].focus();

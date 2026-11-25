@@ -313,6 +313,7 @@ form.addEventListener('submit', async (e) => {
     focus.length ? `Focus: ${focus.join(', ')}` : '',
     form.conditions.value.trim() ? `Conditions: ${form.conditions.value.trim()}` : '',
     form.allergies.value.trim() ? `Allergies: ${form.allergies.value.trim()}` : '',
+    form.scent?.value ? `Scents: ${form.scent.value}` : '',
     form.notes.value.trim(),
   ].filter(Boolean).join('\n');
 
