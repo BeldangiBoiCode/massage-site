@@ -283,6 +283,7 @@ function buildCustomers() {
   const map = new Map(), byPhone = new Map();
   const add = (key, seed) => { if (!map.has(key)) map.set(key, { key, name: '', phone: '', email: '', profile: null, appts: [], ...seed }); return map.get(key); };
   for (const p of S.profiles) {
+    if (p.merged_into) continue; // merged into another client, see merge_clients()
     const c = add(p.id, {});
     c.profile = p; c.name = p.full_name ?? ''; c.phone = p.phone ?? ''; c.email = p.email ?? '';
     if (digits(p.phone)) byPhone.set(digits(p.phone), p.id);
@@ -332,6 +333,7 @@ function customerCard(c, pm) {
       ${c.phone ? `<a class="act main" href="${attr(callHref(c.phone))}">Call</a><a class="act" href="${attr(smsHref(c.phone, hi))}">Text</a>` : ''}
       ${c.email ? `<a class="act" href="${attr(mailHref(c.email, 'From Namaste Nirvana', hi))}">Email</a>` : ''}
       <button class="act" type="button" data-act="chat" data-id="${attr(tkey(c))}">Chat${unread ? ` (${unread})` : ''}</button>
+      <button class="act" type="button" data-act="merge" data-id="${attr(c.key)}">Merge</button>
     </div>
     <details class="more" data-key="${key}" ${S.open.has(key) ? 'open' : ''}><summary>Profile, visits, notes and discounts</summary>
       <div class="more-body">
@@ -383,8 +385,133 @@ function renderCustomers() {
   }).join('');
   $('#p-customers').innerHTML = `
     <div class="search"><input id="q" type="search" placeholder="Search name, phone or email" value="${attr(S.q)}" autocomplete="off" enterkeyhint="search"></div>
+    ${q ? '' : dupesHtml(all)}
     ${shown.length ? shown.map((c) => customerCard(c, pm)).join('') : `<div class="empty-card">${all.length ? 'No one matches that search.' : 'No customers yet. They appear here after their first booking.'}</div>`}
     ${S.disc.length ? `<h2 class="sec-title">Discount codes</h2>${codes}` : ''}`;
+}
+
+/* ---------- merge clients ---------- */
+// Pairs of clients that look like the same person: same phone, same email, or same full name.
+function findDupes(all) {
+  const seen = new Map(), pairs = [], done = new Set();
+  const nameKey = (n) => String(n ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+  for (const c of all) {
+    const keys = [
+      digits(c.phone).length >= 10 && ['phone', 'p:' + digits(c.phone).slice(-10)],
+      c.email && ['email', 'e:' + c.email.toLowerCase()],
+      nameKey(c.name).includes(' ') && ['name', 'n:' + nameKey(c.name)], // full names only, first names repeat too often
+    ].filter(Boolean);
+    for (const [why, k] of keys) {
+      const other = seen.get(k);
+      const id = other && [other.key, c.key].sort().join('|');
+      if (other && other.key !== c.key && !done.has(id)) { done.add(id); pairs.push({ a: other, b: c, why }); }
+      if (!other) seen.set(k, c);
+    }
+  }
+  return pairs;
+}
+
+function dupesHtml(all) {
+  const pairs = findDupes(all).slice(0, 8);
+  if (!pairs.length) return '';
+  return `<h2 class="sec-title">Might be the same person</h2>${pairs.map(({ a, b, why }) => `<article class="a-card attn">
+    <p><b>${esc(a.name || 'Unnamed')}</b> and <b>${esc(b.name || 'Unnamed')}</b> <span class="c-sub">· same ${why}</span></p>
+    <div class="acts"><button class="act main" type="button" data-act="merge" data-id="${attr(a.key)}" data-with="${attr(b.key)}">Review merge</button></div></article>`).join('')}`;
+}
+
+let mergeSheet = null;
+
+function closeMerge() {
+  mergeSheet?.remove();
+  mergeSheet = null;
+  document.body.style.overflow = '';
+}
+
+// Opens the merge sheet for client `aKey`; `bKey` is the other client if we already know it.
+function openMerge(aKey, bKey) {
+  closeMerge();
+  const all = buildCustomers();
+  const a = all.find((c) => c.key === aKey);
+  if (!a) return;
+  mergeSheet = document.createElement('div');
+  mergeSheet.className = 'chat-sheet merge-sheet';
+  document.body.appendChild(mergeSheet);
+  document.body.style.overflow = 'hidden';
+  const b = bKey && all.find((c) => c.key === bKey);
+  if (b) paintMergeChoice(a, b); else paintMergePick(a, all, '');
+}
+
+// Step 1: search for the second client.
+function paintMergePick(a, all, q) {
+  const qq = q.trim().toLowerCase(), qd = digits(q);
+  const list = all.filter((c) => c.key !== a.key && (!qq || c.name.toLowerCase().includes(qq) || c.email.toLowerCase().includes(qq) || (qd && digits(c.phone).includes(qd)))).slice(0, 30);
+  mergeSheet.innerHTML = `<div class="chat-sheet-head"><h3>Merge ${esc(a.name || 'client')} with…</h3>
+      <button class="act" type="button" data-m="close">Close</button></div>
+    <div class="merge-body">
+      <div class="search"><input type="search" data-m="q" placeholder="Search name, phone or email" value="${attr(q)}" autocomplete="off"></div>
+      ${list.map((c) => `<article class="a-card"><p><b>${esc(c.name || 'Unnamed')}</b></p>
+        <p class="c-sub">${[c.phone, c.email].filter(Boolean).map(esc).join(' · ') || 'No contact info'} · ${c.appts.length} visit${c.appts.length === 1 ? '' : 's'}${c.profile ? ' · has an account' : ''}</p>
+        <div class="acts"><button class="act main" type="button" data-m="pick" data-key="${attr(c.key)}">Pick</button></div></article>`).join('') || '<div class="empty-card">No one matches that search.</div>'}
+    </div>`;
+  const box = mergeSheet.querySelector('[data-m="q"]');
+  box.addEventListener('input', () => { paintMergePick(a, all, box.value); const nb = mergeSheet.querySelector('[data-m="q"]'); nb.focus(); nb.setSelectionRange(nb.value.length, nb.value.length); });
+  mergeSheet.onclick = (e) => {
+    const el = e.target.closest('[data-m]');
+    if (el?.dataset.m === 'close') closeMerge();
+    if (el?.dataset.m === 'pick') paintMergeChoice(a, all.find((c) => c.key === el.dataset.key));
+  };
+}
+
+// Step 2: pick which details to keep, then merge.
+function paintMergeChoice(a, b) {
+  // The account (if any) is the one that stays; two accounts: the owner picks.
+  const both = a.profile && b.profile;
+  let keep = b.profile && !a.profile ? b : a;
+  const radios = (field, label, values) => {
+    const opts = [...new Set(values.filter(Boolean))];
+    if (!opts.length) return '';
+    const start = keep[field] && opts.includes(keep[field]) ? keep[field] : opts[0];
+    return `<fieldset class="merge-pick"><legend>${label}</legend>${opts.map((v) => `<label class="check"><input type="radio" name="m-${field}" value="${attr(v)}" ${v === start ? 'checked' : ''}> ${esc(v)}</label>`).join('')}
+      ${field !== 'name' ? `<label class="check"><input type="radio" name="m-${field}" value=""> No ${label.toLowerCase()}</label>` : ''}</fieldset>`;
+  };
+  const side = (c) => `<div class="merge-side"><b>${esc(c.name || 'Unnamed')}</b><span class="c-sub">${[c.phone, c.email].filter(Boolean).map(esc).join(' · ') || 'No contact info'}</span>
+    <span class="c-sub">${c.appts.length} visit${c.appts.length === 1 ? '' : 's'}${c.profile ? ' · has an account' : ' · guest'}</span></div>`;
+  const paint = () => {
+    const from = keep === a ? b : a;
+    mergeSheet.innerHTML = `<div class="chat-sheet-head"><h3>Merge clients</h3><button class="act" type="button" data-m="close">Close</button></div>
+      <form class="merge-body" data-m="form">
+        <div class="merge-pair">${side(a)}<span class="merge-arrow" aria-hidden="true">+</span>${side(b)}</div>
+        ${both ? `<fieldset class="merge-pick"><legend>Which account stays?</legend>
+          <label class="check"><input type="radio" name="m-keep" value="a" ${keep === a ? 'checked' : ''}> ${esc(a.name || 'Unnamed')} (${esc(a.email || a.phone || 'account')})</label>
+          <label class="check"><input type="radio" name="m-keep" value="b" ${keep === b ? 'checked' : ''}> ${esc(b.name || 'Unnamed')} (${esc(b.email || b.phone || 'account')})</label>
+          <p class="c-sub">The other login still works, but it will be empty. Its visits, chats and points move over.</p></fieldset>` : ''}
+        ${radios('name', 'Name', [keep.name, from.name])}
+        ${radios('phone', 'Phone', [keep.phone, from.phone])}
+        ${radios('email', 'Email', [keep.email, from.email])}
+        <p class="c-sub">All visits, chats, notes${keep.profile ? ', points and reviews' : ''} end up on one client. This can't be undone from here (every merge is logged).</p>
+        <div class="acts"><button class="act main" type="submit">Merge into one client</button><button class="act" type="button" data-m="close">Cancel</button></div>
+        <p class="status" data-m="status" role="status" aria-live="polite"></p>
+      </form>`;
+  };
+  paint();
+  mergeSheet.onclick = (e) => { if (e.target.closest('[data-m]')?.dataset.m === 'close') closeMerge(); };
+  mergeSheet.onchange = (e) => {
+    if (e.target.name === 'm-keep') { keep = e.target.value === 'a' ? a : b; paint(); }
+  };
+  mergeSheet.onsubmit = async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const from = keep === a ? b : a;
+    const val = (n) => f.querySelector(`input[name="m-${n}"]:checked`)?.value ?? '';
+    const btn = f.querySelector('button[type=submit]');
+    const st = f.querySelector('[data-m="status"]');
+    btn.disabled = true; st.textContent = 'Merging…';
+    const { error } = await sb.rpc('merge_clients', { p_keep: keep.key, p_from: from.key, p_name: val('name'), p_phone: val('phone'), p_email: val('email') });
+    if (error) { btn.disabled = false; st.textContent = error.message; return; }
+    closeMerge();
+    toast(`<span>Merged into <b>${esc(val('name'))}</b>.</span>`, 6000);
+    load();
+  };
 }
 
 /* ---------- reviews ---------- */
@@ -703,6 +830,7 @@ document.addEventListener('click', (e) => {
       await load();
     }
     else if (act === 'chat') openChat(id);
+    else if (act === 'merge') openMerge(id, el.dataset.with);
     else if (act === 'sheet-close') closeChat();
     else if (act === 'csv') exportCsv(el.dataset.what);
     else if (act === 'status') {
